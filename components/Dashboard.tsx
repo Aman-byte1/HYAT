@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Gauge from './Gauge';
 import HistoryChart from './HistoryChart';
 import axios from 'axios';
@@ -17,11 +17,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [alarmActive, setAlarmActive] = useState(false);
+  const [alarmAcked, setAlarmAcked] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
 
   const handleLogout = () => {
     Cookies.remove('hyat_auth');
     router.push('/login');
+  };
+
+  const handleAckAlarm = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setAlarmAcked(true);
+    setAlarmActive(false);
   };
 
   // Poll ThingSpeak
@@ -41,6 +53,24 @@ export default function Dashboard() {
 
         setData(reading);
         setLastUpdated(new Date());
+
+        // Alarm Logic: Voltage Drop (< 50V)
+        if (reading.voltage < 50) {
+          if (!alarmAcked) {
+            setAlarmActive(true);
+            if (audioRef.current && audioRef.current.paused) {
+              audioRef.current.play().catch(e => console.log("Audio play failed (user interaction needed first)", e));
+            }
+          }
+        } else {
+          // Auto-reset alarm if power returns
+          setAlarmActive(false);
+          setAlarmAcked(false);
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+          }
+        }
 
         // Save to our DB via API
         await axios.post('/api/readings', reading);
@@ -65,7 +95,7 @@ export default function Dashboard() {
     poll(); // Initial call
     const interval = setInterval(poll, 15000); // 15s poll
     return () => clearInterval(interval);
-  }, []);
+  }, [alarmAcked]); // Depend on ack state so poll can read it
 
   if (loading && !data) return (
     <div className="flex h-screen items-center justify-center bg-slate-950 text-cyan-500">
@@ -74,7 +104,28 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 p-6 md:p-12 font-sans selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-200 p-6 md:p-12 font-sans selection:bg-cyan-500/30 relative overflow-hidden">
+      {/* Alarm Overlay */}
+      {alarmActive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-red-900/50 backdrop-blur-sm animate-pulse">
+          <div className="bg-slate-900 border-4 border-red-500 p-10 rounded-3xl text-center shadow-[0_0_100px_rgba(220,38,38,0.5)]">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h1 className="text-4xl font-black text-red-500 mb-2">POWER FAILURE DETECTED</h1>
+            <p className="text-xl text-white mb-8">Voltage Critical: {data?.voltage}V</p>
+            <button 
+              onClick={handleAckAlarm}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg transition-transform active:scale-95"
+            >
+              ACKNOWLEDGE & SILENCE
+            </button>
+          </div>
+        </div>
+      )}
+
+      <audio ref={audioRef} loop>
+        <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg" />
+      </audio>
+
       {/* Header */}
       <header className="mb-10 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6">
         <div className="flex items-center gap-4">
@@ -187,40 +238,39 @@ export default function Dashboard() {
               <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">🤖</span>
-                  <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-widest">AI Forecast (15m)</h4>
+                  <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-widest">System Health Forecast</h4>
                 </div>
                 
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Predicted Voltage</span>
-                      <span className={`font-mono font-bold ${prediction.voltage.predicted > 240 ? 'text-orange-400' : 'text-emerald-400'}`}>
-                        {prediction.voltage.predicted}V
+                      <span className="text-slate-400">Current Health Score</span>
+                      <span className={`font-mono font-bold ${prediction.health.current < 70 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                        {prediction.health.current}%
                       </span>
                     </div>
                     <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full ${prediction.voltage.predicted > 240 ? 'bg-orange-500' : 'bg-emerald-500'}`} 
-                        style={{ width: `${Math.min(100, (prediction.voltage.predicted / 300) * 100)}%` }}
+                        className={`h-full ${prediction.health.current < 70 ? 'bg-orange-500' : 'bg-emerald-500'}`} 
+                        style={{ width: `${prediction.health.current}%` }}
                       />
                     </div>
-                    <div className="text-[10px] text-right mt-1 text-slate-500">{prediction.voltage.direction}</div>
                   </div>
 
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Predicted Temp</span>
-                      <span className={`font-mono font-bold ${prediction.temp.predicted > 80 ? 'text-red-400' : 'text-cyan-400'}`}>
-                        {prediction.temp.predicted}°C
+                      <span className="text-slate-400">Predicted (15m)</span>
+                      <span className={`font-mono font-bold ${prediction.health.predicted < 70 ? 'text-red-400' : 'text-cyan-400'}`}>
+                        {prediction.health.predicted}%
                       </span>
                     </div>
                     <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full ${prediction.temp.predicted > 80 ? 'bg-red-500' : 'bg-cyan-500'}`} 
-                        style={{ width: `${Math.min(100, prediction.temp.predicted)}%` }}
+                        className={`h-full ${prediction.health.predicted < 70 ? 'bg-red-500' : 'bg-cyan-500'}`} 
+                        style={{ width: `${prediction.health.predicted}%` }}
                       />
                     </div>
-                    <div className="text-[10px] text-right mt-1 text-slate-500">{prediction.temp.direction}</div>
+                    <div className="text-[10px] text-right mt-1 text-slate-500">{prediction.health.direction}</div>
                   </div>
                 </div>
               </div>

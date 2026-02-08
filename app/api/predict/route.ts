@@ -4,7 +4,7 @@ import { calculateRegression } from '@/lib/analysis';
 
 export async function GET() {
   try {
-    // Get last 100 readings (approx 25 mins of data)
+    // Get last 100 readings
     const readings = await prisma.reading.findMany({
       orderBy: { timestamp: 'desc' },
       take: 100,
@@ -14,13 +14,12 @@ export async function GET() {
       return NextResponse.json({ ready: false });
     }
 
-    const voltageAnalysis = calculateRegression(readings, 'voltage');
-    const tempAnalysis = calculateRegression(readings, 'temp');
+    // Predict Health Score instead of raw values
+    const healthAnalysis = calculateRegression(readings, 'health');
 
     return NextResponse.json({
       ready: true,
-      voltage: voltageAnalysis,
-      temp: tempAnalysis,
+      health: healthAnalysis,
       samples: readings.length
     });
   } catch (error) {
