@@ -5,6 +5,7 @@ import Gauge from './Gauge';
 import HistoryChart from './HistoryChart';
 import axios from 'axios';
 import { logout } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
 
 const TS_CHANNEL = '3229956';
 const TS_KEY = 'XOSZ81IYE81XCDLJ';
