@@ -103,7 +103,28 @@ export default function Dashboard() {
       </header>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        {/* Location Card */}
+        <div className="bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-700 p-6 shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">📍</span>
+              <h3 className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Site Location</h3>
+            </div>
+            <p className="text-xs font-mono text-cyan-500 mb-4">ADDIS ABABA: 9.018472, 38.750917</p>
+          </div>
+          <div className="rounded-xl overflow-hidden border border-slate-800 h-32">
+            <iframe 
+              width="100%" 
+              height="100%" 
+              src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1000!2d38.750917!3d9.018472!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2set!4v123456789&maptype=satellite"
+              style={{ border: 0 }}
+              allowFullScreen={false}
+              loading="lazy"
+            ></iframe>
+          </div>
+        </div>
+
         <Gauge 
           value={data.voltage} 
           min={180} max={260} 
