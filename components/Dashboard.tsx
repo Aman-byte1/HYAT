@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Gauge from './Gauge';
 import HistoryChart from './HistoryChart';
 import axios from 'axios';
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
 
 const TS_CHANNEL = '3229956';
 const TS_KEY = 'XOSZ81IYE81XCDLJ';
@@ -14,6 +16,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const router = useRouter();
+
+  const handleLogout = () => {
+    Cookies.remove('hyat_auth');
+    router.push('/login');
+  };
 
   // Poll ThingSpeak
   useEffect(() => {
@@ -70,6 +78,12 @@ export default function Dashboard() {
           <p className="text-slate-500 text-sm font-mono">ID: 315KVA-01 • ADDIS ABABA</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <button 
+            onClick={handleLogout}
+            className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest mr-4"
+          >
+            Logout
+          </button>
           <div className={`px-3 py-1 rounded-full text-xs font-bold border ${error ? 'bg-red-900/20 border-red-500 text-red-500' : 'bg-emerald-900/20 border-emerald-500 text-emerald-500'}`}>
             {error ? 'OFFLINE' : 'LIVE UPLINK'}
           </div>
