@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ 315KVA Advanced Security SCADA</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary: #00ff41;
+  --accent: #00ffff;
+  --danger: #ff3232;
+  --warning: #ffaa00;
+  --bg: #0a0f18;
+  --card: #111827;
+  --glass: #0f172a;
+  --text: #f8fafc;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, var(--bg), #1e293b);
+  color: var(--primary);
+  overflow-x: hidden;
+}
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.98);
+  padding: 1.5rem;
+  border-bottom: 3px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+.card {
+  background: linear-gradient(145deg, var(--glass), var(--card));
+  border-radius: 24px;
+  padding: 1.5rem;
+  border: 2px solid transparent;
+  transition: 0.4s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+.card.danger {
+  border-color: var(--danger);
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+  animation: blink-bg 1s infinite;
+}
+@keyframes blink-bg {
+  50% { background: #450a0a; }
+}
+.gauge-container {
+  position: relative;
+  height: 220px;
+  margin: 1rem 0;
+}
+.gauge-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.gauge-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--accent);
+}
+.gauge-footer {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+.status-badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-align: center;
+  display: inline-block;
+}
+.status-badge::before {
+  margin-right: 0.3rem;
+}
+.status-ok {
+  background: #064e03;
+  color: var(--primary);
+}
+.status-danger {
+  background: #991b1b;
+  color: #fee2e2;
+}
+.status-warning {
+  background: #92400e;
+  color: #fef7ed;
+}
+.history-container {
+  font-family: monospace;
+  font-size: 0.8rem;
+  max-height: 180px;
+  overflow-y: auto;
+  background: #000;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid var(--accent);
+  line-height: 1.4;
+}
+.settings-panel {
+  padding: 1rem 0;
+  font-size: 0.85rem;
+}
+.settings-panel label {
+  display: block;
+  margin: 0.5rem 0 0.2rem;
+}
+.settings-panel input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: #1e293b;
+  border: 1px solid var(--accent);
+  color: white;
+}
+#loginOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.login-card {
+  background: var(--card);
+  padding: 3rem;
+  border-radius: 24px;
+  text-align: center;
+  border: 2px solid var(--primary);
+  width: 400px;
+}
+input {
+  width: 100%;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  background: #1e293b;
+  border: 1px solid var(--accent);
+  color: white;
+}
+.btn {
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  font-weight: 700;
+  background: var(--primary);
+  color: black;
+  transition: 0.3s;
+  margin: 5px;
+}
+.hidden {
+  display: none !important;
+}
+iframe {
+  border-radius: 15px;
+  border: 1px solid var(--accent);
+}
+/* Responsive */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    font-size: 0.9rem;
+  }
+}
+
+/* Light theme */
+body.light {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --glass: #f1f5f9;
+  --primary: #059669;
+  --accent: #0ea5e9;
+  --danger: #dc2626;
+  --warning: #f59e0b;
+  --text: #0f172a;
+}
+body.light .card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+body.light .history-container {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+</style>
+</head>
+<body>
+
+<audio id="powerAlarm" loop>
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
+
+<div id="loginOverlay">
+  <div class="login-card">
+    <h1 style="color:var(--accent);margin-bottom:2.5rem;">⚡ EAII ADMIN</h1>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Access Code">
+    <button class="btn" onclick="scada.authenticate()">🚀 ENTER CONTROL ROOM</button>
+  </div>
+</div>
+
+<div id="mainDashboard" class="hidden">
+  <header class="header">
+    <h1>⚡ EAII STARTUP CENTER - 315KVA TRANSFORMER - I/D 01</h1>
+    <div style="display:flex; gap:10px;">
+      <button id="muteBtn" class="btn" style="background:var(--danger);color:white;display:none;" onclick="scada.muteAlarm()">🔕 MUTE ALARM</button>
+      <button id="ackBtn" class="btn" style="background:#444;color:white;display:none;" onclick="scada.ackAlarm()">✅ ACK ALARM</button>
+      <button id="themeBtn" class="btn" style="background:#6b7280;color:white;" onclick="scada.toggleTheme()">🌓 THEME</button>
+      <div id="connectionStatus" class="status-badge status-ok">🟢 LIVE</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <section class="card">
+        <h2>📍 SITE LOCATION</h2>
+        <div style="font-size:0.9rem; margin:10px 0;">ADDIS ABABA: 9.018472, 38.750917</div>
+        <iframe width="100%" height="200" src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1000!2d38.750917!3d9.018472!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2set!4v123456789&maptype=satellite"></iframe>
+      </section>
+
+      <div class="card" id="voltageCard">
+        <h2>⚡ VOLTAGE</h2>
+        <div class="gauge-container">
+          <canvas id="vG"></canvas>
+          <div class="gauge-center">
+            <div class="gauge-value" id="vL">--V</div>
+          </div>
+        </div>
+        <div class="gauge-footer">180–260 V</div>
+        <div id="vB" class="status-badge status-ok">NORMAL</div>
+        <div id="vT" style="font-size:0.75rem; color:#9ca3af;">Last: --:--:--</div>
+      </div>
+
+      <div class="card" id="tempCard">
+        <h2>🌡️ TEMP</h2>
+        <div class="gauge-container">
+          <canvas id="tG"></canvas>
+          <div class="gauge-center">
+            <div class="gauge-value" id="tL">--°C</div>
+          </div>
+        </div>
+        <div class="gauge-footer">0–100 °C</div>
+        <div id="tB" class="status-badge status-ok">NORMAL</div>
+        <div id="tT" style="font-size:0.75rem; color:#9ca3af;">Last: --:--:--</div>
+      </div>
+
+      <div class="card" id="oilCard">
+        <h2>🛢️ OIL</h2>
+        <div class="gauge-container">
+          <canvas id="oG"></canvas>
+          <div class="gauge-center">
+            <div class="gauge-value" id="oL">--%</div>
+          </div>
+        </div>
+        <div class="gauge-footer">0–100 %</div>
+        <div id="oB" class="status-badge status-ok">OPTIMAL</div>
+        <div id="oT" style="font-size:0.75rem; color:#9ca3af;">Last: --:--:--</div>
+      </div>
+
+      <div class="card" id="pqCard">
+        <h2>📊 QUALITY</h2>
+        <div class="gauge-container">
+          <canvas id="qG"></canvas>
+          <div class="gauge-center">
+            <div class="gauge-value" id="qL">--%</div>
+          </div>
+        </div>
+        <div class="gauge-footer">0–100 %</div>
+        <div id="qB" class="status-badge status-ok">OPTIMAL</div>
+        <div id="qT" style="font-size:0.75rem; color:#9ca3af;">Last: --:--:--</div>
+      </div>
+
+      <section class="card" id="settingsSection" style="grid-column: 1 / -1;" class="hidden">
+        <h2>⚙️ SETTINGS / THRESHOLDS</h2>
+        <div class="settings-panel">
+          <label>⚡ Voltage Low (V)</label>
+          <input id="vLow" type="number" value="180" step="1">
+          <label>⚡ Voltage High (V)</label>
+          <input id="vHigh" type="number" value="260" step="1">
+          <label>⚡ Voltage Warn Low (V)</label>
+          <input id="vWarnLow" type="number" value="200" step="1">
+          <label>⚡ Voltage Warn High (V)</label>
+          <input id="vWarnHigh" type="number" value="240" step="1">
+
+          <label>🌡️ Temp Warn (°C)</label>
+          <input id="tWarn" type="number" value="80" step="1">
+          <label>🌡️ Temp Critical (°C)</label>
+          <input id="tCrit" type="number" value="90" step="1">
+
+          <label>🛢️ Oil Low (%)</label>
+          <input id="oLow" type="number" value="20" step="1">
+          <label>🛢️ Oil High (%)</label>
+          <input id="oHigh" type="number" value="80" step="1">
+
+          <label>📊 Quality Warn (%)</label>
+          <input id="qWarn" type="number" value="70" step="1">
+          <label>📊 Quality High (%)</label>
+          <input id="qHigh" type="number" value="90" step="1">
+
+          <button class="btn" onclick="scada.saveThresholds()">💾 SAVE THRESHOLDS</button>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <h2>📝 DATA LOG & EXPORT</h2>
+        <div id="alertLog" class="history-container">Waiting for data...</div>
+        <button class="btn" onclick="scada.downloadCSV()">📥 DOWNLOAD CSV</button>
+        <button class="btn" onclick="scada.downloadJSON()">📄 DOWNLOAD JSON</button>
+        <button class="btn" onclick="scada.clearAlerts()" style="background:#444;color:white;">🗑️ CLEAR</button>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <h2>📊 HEALTH / STATS</h2>
+        <div style="font-size:0.85rem; color:#9ca3af;">
+          <div>Uptime: <span id="uptime">00:00:00</span></div>
+          <div>Alarms triggered: <span id="alarmCount">0</span></div>
+          <div>Data points: <span id="dataCount">0</span></div>
+          <div>Avg Voltage: <span id="avgV">-- V</span></div>
+          <div>Avg Temp: <span id="avgT">-- °C</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+class SCADA_Secure {
+  constructor() {
+    // NOTE: For production, move Thingspeak API key to a backend proxy.
+    this._secrets = {
+      channel: atob("MzIyOTk1Ng=="),   // 3229956
+      key:    atob("WE9TWjgxSVlFODFYQ0RMSg==") // XOSZ81IYE81XCDLJ
+    };
+    this.history = [];
+    this.alarmOn = false;
+    this.alarmAcked = false;
+    this.alarmCount = 0;
+    this.dataCount = 0;
+    this.startTime = new Date();
+    this.thresholds = {
+      vLow: 180,
+      vHigh: 260,
+      vWarnLow: 200,
+      vWarnHigh: 240,
+      tWarn: 80,
+      tCrit: 90,
+      oLow: 20,
+      oHigh: 80,
+      qWarn: 70,
+      qHigh: 90
+    };
+    this.loadThresholds();
+    this.init();
+  }
+
+  init() {
+    this.createGauges();
+    this.poll();
+    this.updateUptime();
+    setInterval(() => this.updateUptime(), 1000);
+  }
+
+  authenticate() {
+    const u = document.getElementById('username').value;
+    const p = document.getElementById('password').value;
+    if (btoa(u) === "SEFZVA==" && btoa(p) === "dGVkZHk=") {
+      document.getElementById('loginOverlay').className = 'hidden';
+      document.getElementById('mainDashboard').className = '';
+      document.getElementById('settingsSection').classList.remove('hidden');
+    } else {
+      alert("Access Denied");
+    }
+  }
+
+  poll() {
+    const url = `https://api.thingspeak.com/channels/${this._secrets.channel}/feeds/last.json?api_key=${this._secrets.key}`;
+    setInterval(() => {
+      fetch(url)
+        .then(r => r.json())
+        .then(d => {
+          const now = new Date().toLocaleTimeString();
+          const s = {
+            v: parseFloat(d.field1) || 0,
+            t: parseFloat(d.field2) || 0,
+            o: parseFloat(d.field3) || 0,
+            q: parseFloat(d.field4) || 0,
+            ts: now
+          };
+          this.update(s);
+          document.getElementById('connectionStatus').className = 'status-badge status-ok';
+          document.getElementById('connectionStatus').textContent = '🟢 LIVE';
+        })
+        .catch(err => {
+          document.getElementById('connectionStatus').className = 'status-badge status-danger';
+          document.getElementById('connectionStatus').textContent = '🔴 OFFLINE';
+        });
+    }, 15000);
+  }
+
+  update(s) {
+    document.getElementById('vL').textContent = s.v + 'V';
+    document.getElementById('tL').textContent = s.t + '°C';
+    document.getElementById('oL').textContent = s.o + '%';
+    document.getElementById('qL').textContent = s.q + '%';
+
+    const now = s.ts;
+    document.getElementById('vT').textContent = `Last: ${now}`;
+    document.getElementById('tT').textContent = `Last: ${now}`;
+    document.getElementById('oT').textContent = `Last: ${now}`;
+    document.getElementById('qT').textContent = `Last: ${now}`;
+
+    // Power Off Alarm Logic
+    if (s.v < 50 && !this.alarmAcked) {
+      this.triggerAlarm();
+    } else if (s.v >= 50) {
+      this.muteAlarm();
+    }
+
+    this.history.unshift(s);
+    if (this.history.length > 100) {
+      this.history = this.history.slice(0, 100);
+    }
+
+    this.dataCount++;
+    document.getElementById('dataCount').textContent = this.dataCount;
+
+    const log = document.getElementById('alertLog');
+    const severity = (s.v < 50) ? 'DANGER' : (s.v < 180 || s.v > 260) ? 'WARN' : 'OK';
+    const color = (severity === 'DANGER') ? 'color:#ff3232;' : (severity === 'WARN') ? 'color:#ffaa00;' : 'color:#00ff41;';
+    log.innerHTML = `<span style="${color}">[${s.ts}] V:${s.v} T:${s.t} O:${s.o} Q:${s.q} (${severity})</span><br>` + log.innerHTML;
+    if (log.innerHTML.split('<br>').length > 200) {
+      const lines = log.innerHTML.split('<br>');
+      log.innerHTML = lines.slice(0, 200).join('<br>');
+    }
+
+    this.upGauge(this.vG, s.v, this.thresholds.vLow, this.thresholds.vHigh, this.thresholds.vWarnLow, this.thresholds.vWarnHigh, 'v');
+    this.upGauge(this.tG, s.t, 0, 100, this.thresholds.tWarn, this.thresholds.tCrit, 't');
+    this.upGauge(this.oG, s.o, 0, 100, this.thresholds.oLow, this.thresholds.oHigh, 'o');
+    this.upGauge(this.qG, s.q, 0, 100, this.thresholds.qWarn, this.thresholds.qHigh, 'q');
+
+    this.updateStats();
+  }
+
+  triggerAlarm() {
+    if (!this.alarmOn) {
+      this.alarmOn = true;
+      this.alarmCount++;
+      document.getElementById('alarmCount').textContent = this.alarmCount;
+      document.getElementById('powerAlarm').play();
+      document.getElementById('muteBtn').style.display = 'block';
+      document.getElementById('ackBtn').style.display = 'block';
+      setTimeout(() => {
+        if (!this.alarmAcked) this.muteAlarm();
+      }, 10000); // 10s Limit
+    }
+  }
+
+  muteAlarm() {
+    document.getElementById('powerAlarm').pause();
+    document.getElementById('muteBtn').style.display = 'none';
+    document.getElementById('ackBtn').style.display = 'none';
+    this.alarmOn = false;
+  }
+
+  ackAlarm() {
+    this.alarmAcked = true;
+    this.muteAlarm();
+    const log = document.getElementById('alertLog');
+    const now = new Date().toLocaleTimeString();
+    log.innerHTML = `<span style="color:#00ffff;">[${now}] Alarm acknowledged by operator</span><br>` + log.innerHTML;
+  }
+
+  upGauge(g, v, min, max, warnLow, warnHigh, elId) {
+    const p = ((v - min) / (max - min)) * 100;
+    let color = '#00ff41'; // OK
+    if (v < warnLow || v > warnHigh) color = '#ffaa00'; // Warning
+    if (v < min || v > max) color = '#ff3232'; // Danger
+
+    g.data.datasets[0].data = [Math.max(0, p), Math.max(0, 100 - p)];
+    g.data.datasets[0].backgroundColor = [color, '#2d3748'];
+    g.update();
+
+    const card = document.getElementById(elId + 'Card');
+    if (v < min || v > max) {
+      card.classList.add('danger');
+    } else {
+      card.classList.remove('danger');
+    }
+  }
+
+  createGauges() {
+    const cfg = (c) => ({
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [0, 100],
+          backgroundColor: [c, '#2d3748'],
+          borderWidth: 0,
+          cutout: '80%'
+        }]
+      },
+      options: {
+        circumference: 180,
+        rotation: 270,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } }
+      }
+    });
+    this.vG = new Chart(document.getElementById('vG'), cfg('#00ff41'));
+    this.tG = new Chart(document.getElementById('tG'), cfg('#00ffff'));
+    this.oG = new Chart(document.getElementById('oG'), cfg('#ffaa00'));
+    this.qG = new Chart(document.getElementById('qG'), cfg('#00ff41'));
+  }
+
+  downloadCSV() {
+    let csv = "Time,Volt,Temp,Oil,Quality\n";
+    this.history.forEach(r => {
+      csv += `${r.ts},${r.v},${r.t},${r.o},${r.q}\n`;
+    });
+    const b = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = 'SCADA_Report.csv';
+    a.click();
+  }
+
+  downloadJSON() {
+    const data = JSON.stringify(this.history, null, 2);
+    const b = new Blob([data], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = 'SCADA_Report.json';
+    a.click();
+  }
+
+  clearAlerts() {
+    document.getElementById('alertLog').innerHTML = 'Log cleared.\n';
+    this.history = [];
+    this.alarmCount = 0;
+    this.dataCount = 0;
+    document.getElementById('alarmCount').textContent = '0';
+    document.getElementById('dataCount').textContent = '0';
+    document.getElementById('avgV').textContent = '-- V';
+    document.getElementById('avgT').textContent = '-- °C';
+  }
+
+  saveThresholds() {
+    this.thresholds.vLow     = parseFloat(document.getElementById('vLow').value) || 180;
+    this.thresholds.vHigh    = parseFloat(document.getElementById('vHigh').value) || 260;
+    this.thresholds.vWarnLow = parseFloat(document.getElementById('vWarnLow').value) || 200;
+    this.thresholds.vWarnHigh= parseFloat(document.getElementById('vWarnHigh').value) || 240;
+    this.thresholds.tWarn    = parseFloat(document.getElementById('tWarn').value) || 80;
+    this.thresholds.tCrit    = parseFloat(document.getElementById('tCrit').value) || 90;
+    this.thresholds.oLow     = parseFloat(document.getElementById('oLow').value) || 20;
+    this.thresholds.oHigh    = parseFloat(document.getElementById('oHigh').value) || 80;
+    this.thresholds.qWarn    = parseFloat(document.getElementById('qWarn').value) || 70;
+    this.thresholds.qHigh    = parseFloat(document.getElementById('qHigh').value) || 90;
+
+    localStorage.setItem('scadaThresholds', JSON.stringify(this.thresholds));
+    alert("Thresholds saved.");
+  }
+
+  loadThresholds() {
+    const saved = localStorage.getItem('scadaThresholds');
+    if (saved) {
+      try {
+        const t = JSON.parse(saved);
+        Object.assign(this.thresholds, t);
+      } catch (e) {}
+    }
+  }
+
+  toggleTheme() {
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    document.getElementById('themeBtn').textContent = isLight ? '🌙 DARK' : '🌞 LIGHT';
+  }
+
+  updateUptime() {
+    const now = new Date();
+    const diff = Math.floor((now - this.startTime) / 1000);
+    const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+    const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+    const s = (diff % 60).toString().padStart(2, '0');
+    document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
+  }
+
+  updateStats() {
+    if (this.history.length === 0) return;
+    const sumV = this.history.reduce((a, b) => a + b.v, 0);
+    const sumT = this.history.reduce((a, b) => a + b.t, 0);
+    document.getElementById('avgV').textContent = (sumV / this.history.length).toFixed(1) + ' V';
+    document.getElementById('avgT').textContent = (sumT / this.history.length).toFixed(1) + ' °C';
+  }
+}
+const scada = new SCADA_Secure();
+</script>
+</body>
+</html>

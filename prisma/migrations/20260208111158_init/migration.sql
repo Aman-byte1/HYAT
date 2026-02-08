@@ -1,0 +1,18 @@
+-- CreateTable
+CREATE TABLE "Reading" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "voltage" REAL NOT NULL,
+    "temp" REAL NOT NULL,
+    "oilLevel" REAL NOT NULL,
+    "quality" REAL NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "Alarm" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "type" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "acked" BOOLEAN NOT NULL DEFAULT false
+);

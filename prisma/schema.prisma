@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Reading {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  voltage   Float
+  temp      Float
+  oilLevel  Float
+  quality   Float
+}
+
+model Alarm {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  type      String   // "VOLTAGE", "TEMP", "OIL", "QUALITY"
+  message   String
+  acked     Boolean  @default(false)
+}
