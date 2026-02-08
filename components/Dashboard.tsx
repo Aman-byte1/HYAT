@@ -71,11 +71,14 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 md:p-12 font-sans selection:bg-cyan-500/30">
       {/* Header */}
       <header className="mb-10 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">HYAT</span> SCADA
-          </h1>
-          <p className="text-slate-500 text-sm font-mono">ID: 315KVA-01 • ADDIS ABABA</p>
+        <div className="flex items-center gap-4">
+          <img src="/logo.png" alt="HYAT Logo" className="w-12 h-12 object-contain" />
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">HYAT</span> SCADA
+            </h1>
+            <p className="text-slate-500 text-sm font-mono">ID: 315KVA-01 • ADDIS ABABA</p>
+          </div>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
           <button 
