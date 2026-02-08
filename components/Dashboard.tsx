@@ -28,6 +28,7 @@ export default function Dashboard() {
   };
 
   const handleAckAlarm = () => {
+    console.log("Alarm acknowledged");
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -56,14 +57,16 @@ export default function Dashboard() {
 
         // Alarm Logic: Voltage Drop (< 50V)
         if (reading.voltage < 50) {
+          console.log("CRITICAL VOLTAGE DETECTED:", reading.voltage);
           if (!alarmAcked) {
             setAlarmActive(true);
-            if (audioRef.current && audioRef.current.paused) {
-              audioRef.current.play().catch(e => console.log("Audio play failed (user interaction needed first)", e));
+            if (audioRef.current) {
+              audioRef.current.play().catch(e => console.error("Audio play failed:", e));
             }
           }
         } else {
           // Auto-reset alarm if power returns
+          if (alarmActive) console.log("Power restored, resetting alarm");
           setAlarmActive(false);
           setAlarmAcked(false);
           if (audioRef.current) {
@@ -122,7 +125,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <audio ref={audioRef} loop>
+      <audio ref={audioRef} loop preload="auto" crossOrigin="anonymous">
         <source src="/alarm.mp3" type="audio/mp3" />
       </audio>
 
@@ -140,10 +143,16 @@ export default function Dashboard() {
         <div className="flex items-center gap-4 mt-4 md:mt-0">
           <button 
             onClick={() => {
+              console.log("Manual Alarm Test Triggered");
               setAlarmActive(true);
               setAlarmAcked(false);
               if (audioRef.current) {
-                audioRef.current.play().catch(e => alert("Please click the page first to enable audio."));
+                audioRef.current.play()
+                  .then(() => console.log("Audio playing successfully"))
+                  .catch(e => {
+                    console.error("Manual audio play failed:", e);
+                    alert("Please click anywhere on the page first, then try the test button again.");
+                  });
               }
             }}
             className="text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg border border-slate-600 transition-colors uppercase tracking-widest mr-2"
