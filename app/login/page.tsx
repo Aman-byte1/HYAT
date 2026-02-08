@@ -17,11 +17,8 @@ export default function LoginPage() {
     const formData = new FormData(e.currentTarget);
     const result = await login(formData);
 
-    if (result.success) {
-      router.push('/');
-      router.refresh();
-    } else {
-      setError(result.error || 'Login failed');
+    if (result?.error) {
+      setError(result.error);
       setIsLoading(false);
     }
   }
