@@ -123,7 +123,7 @@ export default function Dashboard() {
       )}
 
       <audio ref={audioRef} loop>
-        <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg" />
+        <source src="/alarm.mp3" type="audio/mp3" />
       </audio>
 
       {/* Header */}
@@ -138,6 +138,18 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <button 
+            onClick={() => {
+              setAlarmActive(true);
+              setAlarmAcked(false);
+              if (audioRef.current) {
+                audioRef.current.play().catch(e => alert("Please click the page first to enable audio."));
+              }
+            }}
+            className="text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg border border-slate-600 transition-colors uppercase tracking-widest mr-2"
+          >
+            🔔 Test Alarm
+          </button>
           <button 
             onClick={handleLogout}
             className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest mr-4"
