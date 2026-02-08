@@ -65,14 +65,9 @@ export default function Dashboard() {
             }
           }
         } else {
-          // Auto-reset alarm if power returns
-          if (alarmActive) console.log("Power restored, resetting alarm");
-          setAlarmActive(false);
-          setAlarmAcked(false);
-          if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-          }
+          // If power returns, we DON'T auto-reset the alarm anymore
+          // This ensures the operator sees the failure occurred
+          if (alarmActive) console.log("Power restored, but keeping alarm active until ACK");
         }
 
         // Save to our DB via API
