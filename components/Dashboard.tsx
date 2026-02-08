@@ -13,6 +13,7 @@ const TS_KEY = 'XOSZ81IYE81XCDLJ';
 export default function Dashboard() {
   const [data, setData] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -47,6 +48,11 @@ export default function Dashboard() {
         // Fetch updated history from our DB
         const histRes = await axios.get('/api/readings');
         setHistory(histRes.data);
+
+        // Fetch AI Prediction
+        const predRes = await axios.get('/api/predict');
+        setPrediction(predRes.data);
+
         setError('');
       } catch (err) {
         console.error("Polling error", err);
@@ -154,6 +160,50 @@ export default function Dashboard() {
               <span className="text-sm text-slate-300">Security Breach</span>
               <span className="text-xs font-bold text-slate-500">NONE</span>
             </div>
+
+            {/* AI Prediction Card */}
+            {prediction && prediction.ready && (
+              <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🤖</span>
+                  <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-widest">AI Forecast (15m)</h4>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-400">Predicted Voltage</span>
+                      <span className={`font-mono font-bold ${prediction.voltage.predicted > 240 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                        {prediction.voltage.predicted}V
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${prediction.voltage.predicted > 240 ? 'bg-orange-500' : 'bg-emerald-500'}`} 
+                        style={{ width: `${Math.min(100, (prediction.voltage.predicted / 300) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-right mt-1 text-slate-500">{prediction.voltage.direction}</div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-400">Predicted Temp</span>
+                      <span className={`font-mono font-bold ${prediction.temp.predicted > 80 ? 'text-red-400' : 'text-cyan-400'}`}>
+                        {prediction.temp.predicted}°C
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${prediction.temp.predicted > 80 ? 'bg-red-500' : 'bg-cyan-500'}`} 
+                        style={{ width: `${Math.min(100, prediction.temp.predicted)}%` }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-right mt-1 text-slate-500">{prediction.temp.direction}</div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="mt-8 pt-4 border-t border-slate-800">
               <h4 className="text-xs text-slate-500 uppercase mb-2">Recent Alerts</h4>
