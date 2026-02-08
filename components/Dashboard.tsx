@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Gauge from './Gauge';
 import HistoryChart from './HistoryChart';
 import axios from 'axios';
-import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
+import { logout } from '@/lib/auth';
 
 const TS_CHANNEL = '3229956';
 const TS_KEY = 'XOSZ81IYE81XCDLJ';
@@ -22,9 +21,10 @@ export default function Dashboard() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
 
-  const handleLogout = () => {
-    Cookies.remove('hyat_auth');
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
+    router.refresh();
   };
 
   const handleAckAlarm = () => {
@@ -136,24 +136,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
-          <button 
-            onClick={() => {
-              console.log("Manual Alarm Test Triggered");
-              setAlarmActive(true);
-              setAlarmAcked(false);
-              if (audioRef.current) {
-                audioRef.current.play()
-                  .then(() => console.log("Audio playing successfully"))
-                  .catch(e => {
-                    console.error("Manual audio play failed:", e);
-                    alert("Please click anywhere on the page first, then try the test button again.");
-                  });
-              }
-            }}
-            className="text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg border border-slate-600 transition-colors uppercase tracking-widest mr-2"
-          >
-            🔔 Test Alarm
-          </button>
           <button 
             onClick={handleLogout}
             className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest mr-4"
