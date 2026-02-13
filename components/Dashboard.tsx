@@ -6,14 +6,25 @@ import HistoryChart from './HistoryChart';
 import axios from 'axios';
 import { logout } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
+import { Reading } from '@/lib/analysis';
+import Image from 'next/image';
 
 const TS_CHANNEL = '3229956';
 const TS_KEY = 'XOSZ81IYE81XCDLJ';
 
+interface PredictionData {
+  ready: boolean;
+  health: {
+    current: number;
+    predicted: number;
+    direction: string;
+  };
+}
+
 export default function Dashboard() {
-  const [data, setData] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [prediction, setPrediction] = useState<any>(null);
+  const [data, setData] = useState<Reading | null>(null);
+  const [history, setHistory] = useState<Reading[]>([]);
+  const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -46,19 +57,22 @@ export default function Dashboard() {
         const res = await axios.get(`https://api.thingspeak.com/channels/${TS_CHANNEL}/feeds/last.json?api_key=${TS_KEY}`);
         const feed = res.data;
         
-        const reading = {
-          voltage: parseFloat(feed.field1) || 0,
+        const reading: Reading = {
+          voltage1: parseFloat(feed.field1) || 0,
+          voltage2: 0,
+          voltage3: 0,
           temp: parseFloat(feed.field2) || 0,
           oilLevel: parseFloat(feed.field3) || 0,
           quality: parseFloat(feed.field4) || 0,
+          timestamp: new Date().toISOString()
         };
 
         setData(reading);
         setLastUpdated(new Date());
 
-        // Alarm Logic: Voltage Drop (< 50V)
-        if (reading.voltage < 50) {
-          console.log("CRITICAL VOLTAGE DETECTED:", reading.voltage);
+        // Alarm Logic: Voltage Drop (< 50V) on Phase 1
+        if (reading.voltage1 < 50) {
+          console.log("CRITICAL VOLTAGE DETECTED:", reading.voltage1);
           if (!alarmAcked) {
             setAlarmActive(true);
             if (audioRef.current) {
@@ -94,7 +108,7 @@ export default function Dashboard() {
     poll(); // Initial call
     const interval = setInterval(poll, 15000); // 15s poll
     return () => clearInterval(interval);
-  }, [alarmAcked]); // Depend on ack state so poll can read it
+  }, [alarmAcked, alarmActive]); // Depend on ack and active state
 
   if (loading && !data) return (
     <div className="flex h-screen items-center justify-center bg-slate-950 text-cyan-500">
@@ -110,7 +124,7 @@ export default function Dashboard() {
           <div className="bg-slate-900 border-4 border-red-500 p-10 rounded-3xl text-center shadow-[0_0_100px_rgba(220,38,38,0.5)]">
             <div className="text-6xl mb-4">⚠️</div>
             <h1 className="text-4xl font-black text-red-500 mb-2">POWER FAILURE DETECTED</h1>
-            <p className="text-xl text-white mb-8">Voltage Critical: {data?.voltage}V</p>
+            <p className="text-xl text-white mb-8">Voltage Critical: {data?.voltage1}V</p>
             <button 
               onClick={handleAckAlarm}
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg transition-transform active:scale-95"
@@ -128,7 +142,7 @@ export default function Dashboard() {
       {/* Header */}
       <header className="mb-10 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6">
         <div className="flex items-center gap-4">
-          <img src="/logo.png" alt="HYAT Logo" className="w-12 h-12 object-contain" />
+          <Image src="/logo.png" alt="HYAT Logo" width={48} height={48} className="object-contain" />
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">HYAT</span> SCADA
@@ -175,14 +189,36 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Gauge 
-          value={data.voltage} 
-          min={180} max={260} 
-          label="Voltage" 
-          unit="V" 
-          warnLow={200} warnHigh={240} 
-          color="#10b981"
-        />
+        <div className="lg:col-span-1 grid grid-rows-3 gap-2">
+          <Gauge 
+            value={data.voltage1} 
+            min={0} max={300} 
+            label="L1 Voltage" 
+            unit="V" 
+            warnLow={200} warnHigh={240} 
+            color="#10b981"
+            size="sm"
+          />
+          <Gauge 
+            value={data.voltage2} 
+            min={0} max={300} 
+            label="L2 Voltage" 
+            unit="V" 
+            warnLow={200} warnHigh={240} 
+            color="#94a3b8"
+            size="sm"
+          />
+          <Gauge 
+            value={data.voltage3} 
+            min={0} max={300} 
+            label="L3 Voltage" 
+            unit="V" 
+            warnLow={200} warnHigh={240} 
+            color="#94a3b8"
+            size="sm"
+          />
+        </div>
+        
         <Gauge 
           value={data.temp} 
           min={0} max={100} 
@@ -281,7 +317,7 @@ export default function Dashboard() {
                 {history.slice(0, 10).map((h, i) => (
                   <div key={i} className="flex gap-2">
                     <span className="text-slate-600">[{new Date(h.timestamp).toLocaleTimeString()}]</span>
-                    <span>V:{h.voltage} T:{h.temp}</span>
+                    <span>V1:{h.voltage1} V2:{h.voltage2} V3:{h.voltage3}</span>
                   </div>
                 ))}
               </div>

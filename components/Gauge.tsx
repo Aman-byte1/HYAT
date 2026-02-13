@@ -11,9 +11,10 @@ interface GaugeProps {
   warnLow?: number;
   warnHigh?: number;
   color?: string;
+  size?: 'sm' | 'md';
 }
 
-export default function Gauge({ value, min, max, label, unit, warnLow, warnHigh, color = '#00ff41' }: GaugeProps) {
+export default function Gauge({ value, min, max, label, unit, warnLow, warnHigh, color = '#00ff41', size = 'md' }: GaugeProps) {
   const percentage = Math.min(Math.max((value - min) / (max - min) * 100, 0), 100);
   
   // Determine color based on thresholds
@@ -30,13 +31,17 @@ export default function Gauge({ value, min, max, label, unit, warnLow, warnHigh,
     { name: 'Rest', value: 100 - percentage },
   ];
 
+  const heightClass = size === 'sm' ? 'h-20' : 'h-32';
+  const labelClass = size === 'sm' ? 'text-[10px]' : 'text-sm';
+  const valueClass = size === 'sm' ? 'text-lg' : 'text-2xl';
+
   return (
-    <div className="flex flex-col items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden group hover:border-cyan-500/50 transition-all duration-300">
+    <div className={`flex flex-col items-center justify-center ${size === 'sm' ? 'p-2' : 'p-4'} bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden group hover:border-cyan-500/50 transition-all duration-300`}>
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
       
-      <h3 className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2 z-10">{label}</h3>
+      <h3 className={`text-slate-400 ${labelClass} font-semibold uppercase tracking-wider ${size === 'sm' ? 'mb-0' : 'mb-2'} z-10`}>{label}</h3>
       
-      <div className="w-full h-32 relative z-10">
+      <div className={`w-full ${heightClass} relative z-10`}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -56,19 +61,21 @@ export default function Gauge({ value, min, max, label, unit, warnLow, warnHigh,
             </Pie>
           </PieChart>
         </ResponsiveContainer>
-        <div className="absolute inset-0 flex items-center justify-center pt-8">
+        <div className={`absolute inset-0 flex items-center justify-center ${size === 'sm' ? 'pt-4' : 'pt-8'}`}>
           <div className="text-center">
-            <div className="text-2xl font-bold text-white drop-shadow-md">
+            <div className={`font-bold text-white drop-shadow-md ${valueClass}`}>
               {value}<span className="text-sm text-slate-500 ml-1">{unit}</span>
             </div>
           </div>
         </div>
       </div>
       
-      <div className="w-full flex justify-between text-xs text-slate-500 px-4 mt-[-10px] z-10">
-        <span>{min}</span>
-        <span>{max}</span>
-      </div>
+      {size !== 'sm' && (
+        <div className="w-full flex justify-between text-xs text-slate-500 px-4 mt-[-10px] z-10">
+          <span>{min}</span>
+          <span>{max}</span>
+        </div>
+      )}
     </div>
   );
 }

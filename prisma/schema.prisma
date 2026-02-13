@@ -10,7 +10,9 @@ datasource db {
 model Reading {
   id        Int      @id @default(autoincrement())
   timestamp DateTime @default(now())
-  voltage   Float
+  voltage1  Float
+  voltage2  Float    @default(0)
+  voltage3  Float    @default(0)
   temp      Float
   oilLevel  Float
   quality   Float

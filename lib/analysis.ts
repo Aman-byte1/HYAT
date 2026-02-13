@@ -1,10 +1,22 @@
-export function calculateHealthScore(reading: any) {
+export interface Reading {
+  id?: number;
+  timestamp: string | Date;
+  voltage1: number;
+  voltage2: number;
+  voltage3: number;
+  temp: number;
+  oilLevel: number;
+  quality: number;
+}
+
+export function calculateHealthScore(reading: Reading) {
   let score = 100;
 
   // Voltage Penalty (Ideal: 210-230)
   // If < 180 or > 260, heavy penalty
-  if (reading.voltage < 180 || reading.voltage > 260) score -= 40;
-  else if (reading.voltage < 200 || reading.voltage > 240) score -= 10;
+  const v = reading.voltage1;
+  if (v < 180 || v > 260) score -= 40;
+  else if (v < 200 || v > 240) score -= 10;
 
   // Temp Penalty (Ideal: < 60)
   if (reading.temp > 90) score -= 40;
@@ -20,11 +32,15 @@ export function calculateHealthScore(reading: any) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-export function calculateRegression(data: any[], key: string = 'health') {
-  if (data.length < 2) return { slope: 0, predicted: 0, direction: 'Stable' };
+export function calculateRegression(data: Reading[], key: keyof Reading | 'health' = 'health') {
+  if (data.length < 2) return { slope: 0, predicted: 0, direction: 'Stable', current: 0 };
+
+  interface ExtendedReading extends Reading {
+    health: number;
+  }
 
   // Generate health scores if key is 'health'
-  const processedData = data.map((d, i) => ({
+  const processedData: ExtendedReading[] = data.map((d) => ({
     ...d,
     health: calculateHealthScore(d)
   }));
@@ -39,7 +55,7 @@ export function calculateRegression(data: any[], key: string = 'health') {
   const reversed = [...processedData].reverse();
 
   reversed.forEach((point, i) => {
-    const y = point[key];
+    const y = key === 'health' ? point.health : (point[key] as number);
     sumX += i;
     sumY += y;
     sumXY += i * y;
@@ -53,13 +69,16 @@ export function calculateRegression(data: any[], key: string = 'health') {
   const futureX = n + 60; 
   const predicted = slope * futureX + intercept;
 
+  const lastPoint = reversed[reversed.length - 1];
+  const currentValue = key === 'health' ? lastPoint.health : (lastPoint[key] as number);
+
   let direction = 'Stable ➡️';
   if (slope > 0.05) direction = 'Improving 📈';
   if (slope < -0.05) direction = 'Degrading 📉';
 
   return {
     slope,
-    current: reversed[reversed.length - 1][key],
+    current: currentValue,
     predicted: Math.max(0, Math.min(100, parseFloat(predicted.toFixed(1)))),
     direction
   };

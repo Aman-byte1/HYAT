@@ -16,11 +16,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { voltage, temp, oilLevel, quality } = body;
+    const { voltage1, voltage2, voltage3, temp, oilLevel, quality } = body;
     
     const reading = await prisma.reading.create({
       data: {
-        voltage,
+        voltage1,
+        voltage2: voltage2 || 0,
+        voltage3: voltage3 || 0,
         temp,
         oilLevel,
         quality,

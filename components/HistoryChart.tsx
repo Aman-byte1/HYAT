@@ -2,8 +2,9 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
+import { Reading } from '@/lib/analysis';
 
-export default function HistoryChart({ data }: { data: any[] }) {
+export default function HistoryChart({ data }: { data: Reading[] }) {
   if (!data || data.length === 0) return <div className="text-slate-500 text-center py-10">No history data yet</div>;
 
   // Reverse data for chart (oldest to newest)
@@ -22,9 +23,10 @@ export default function HistoryChart({ data }: { data: any[] }) {
           <YAxis stroke="#94a3b8" fontSize={12} tick={{fill: '#94a3b8'}} domain={['auto', 'auto']} />
           <Tooltip 
             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc' }}
-            itemStyle={{ color: '#00ff41' }}
           />
-          <Line type="monotone" dataKey="voltage" stroke="#00ff41" strokeWidth={2} dot={false} activeDot={{ r: 8 }} />
+          <Line name="L1" type="monotone" dataKey="voltage1" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+          <Line name="L2" type="monotone" dataKey="voltage2" stroke="#3b82f6" strokeWidth={1} dot={false} opacity={0.5} />
+          <Line name="L3" type="monotone" dataKey="voltage3" stroke="#8b5cf6" strokeWidth={1} dot={false} opacity={0.5} />
         </LineChart>
       </ResponsiveContainer>
     </div>
