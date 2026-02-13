@@ -61,6 +61,9 @@ export default function Dashboard() {
           voltage1: parseFloat(feed.field1) || 0,
           voltage2: 0,
           voltage3: 0,
+          current1: parseFloat(feed.field5) || 0,
+          current2: 0,
+          current3: 0,
           temp: parseFloat(feed.field2) || 0,
           oilLevel: parseFloat(feed.field3) || 0,
           quality: parseFloat(feed.field4) || 0,
@@ -218,6 +221,36 @@ export default function Dashboard() {
             size="sm"
           />
         </div>
+
+        <div className="lg:col-span-1 grid grid-rows-3 gap-2">
+          <Gauge 
+            value={data.current1} 
+            min={0} max={100} 
+            label="L1 Current" 
+            unit="A" 
+            warnHigh={80} 
+            color="#06b6d4"
+            size="sm"
+          />
+          <Gauge 
+            value={data.current2} 
+            min={0} max={100} 
+            label="L2 Current" 
+            unit="A" 
+            warnHigh={80} 
+            color="#94a3b8"
+            size="sm"
+          />
+          <Gauge 
+            value={data.current3} 
+            min={0} max={100} 
+            label="L3 Current" 
+            unit="A" 
+            warnHigh={80} 
+            color="#94a3b8"
+            size="sm"
+          />
+        </div>
         
         <Gauge 
           value={data.temp} 
@@ -314,13 +347,12 @@ export default function Dashboard() {
             <div className="mt-8 pt-4 border-t border-slate-800">
               <h4 className="text-xs text-slate-500 uppercase mb-2">Recent Alerts</h4>
               <div className="h-32 overflow-y-auto text-xs font-mono space-y-1 text-slate-400 custom-scrollbar">
-                {history.slice(0, 10).map((h, i) => (
-                  <div key={i} className="flex gap-2">
-                    <span className="text-slate-600">[{new Date(h.timestamp).toLocaleTimeString()}]</span>
-                    <span>V1:{h.voltage1} V2:{h.voltage2} V3:{h.voltage3}</span>
-                  </div>
-                ))}
-              </div>
+                                {history.slice(0, 10).map((h, i) => (
+                                  <div key={i} className="flex gap-2">
+                                    <span className="text-slate-600">[{new Date(h.timestamp).toLocaleTimeString()}]</span>
+                                    <span>V1:{h.voltage1} C1:{h.current1} T:{h.temp}</span>  
+                                  </div>
+                                ))}              </div>
             </div>
           </div>
         </div>

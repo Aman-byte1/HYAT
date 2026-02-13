@@ -4,6 +4,9 @@ export interface Reading {
   voltage1: number;
   voltage2: number;
   voltage3: number;
+  current1: number;
+  current2: number;
+  current3: number;
   temp: number;
   oilLevel: number;
   quality: number;

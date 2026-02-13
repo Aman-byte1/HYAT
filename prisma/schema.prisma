@@ -13,6 +13,9 @@ model Reading {
   voltage1  Float
   voltage2  Float    @default(0)
   voltage3  Float    @default(0)
+  current1  Float    @default(0)
+  current2  Float    @default(0)
+  current3  Float    @default(0)
   temp      Float
   oilLevel  Float
   quality   Float
