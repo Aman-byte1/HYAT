@@ -42,7 +42,7 @@ export default function Gauge({ value, min, max, label, unit, warnLow, warnHigh,
       <h3 className={`text-slate-400 ${labelClass} font-semibold uppercase tracking-wider ${size === 'sm' ? 'mb-0' : 'mb-2'} z-10`}>{label}</h3>
       
       <div className={`w-full ${heightClass} relative z-10`}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart>
             <Pie
               data={data}

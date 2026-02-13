@@ -16,7 +16,7 @@ export default function HistoryChart({ data }: { data: Reading[] }) {
   return (
     <div className="w-full h-64 bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-700 p-4 shadow-xl">
       <h3 className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-4">Live History (Voltage)</h3>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="time" stroke="#94a3b8" fontSize={12} tick={{fill: '#94a3b8'}} />

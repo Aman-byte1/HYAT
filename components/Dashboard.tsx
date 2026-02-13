@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [alarmActive, setAlarmActive] = useState(false);
   const [alarmAcked, setAlarmAcked] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [simStep, setSimStep] = useState(0);
+  const simStepRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
 
@@ -52,8 +52,9 @@ export default function Dashboard() {
   };
 
   const toggleSimulation = () => {
-    setIsSimulating(!isSimulating);
-    setSimStep(0);
+    const newSimState = !isSimulating;
+    setIsSimulating(newSimState);
+    simStepRef.current = 0;
     setAlarmAcked(false);
     setAlarmActive(false);
   };
@@ -75,7 +76,7 @@ export default function Dashboard() {
             { v: 220, c: 40, t: 55, o: 88, q: 90 }, // Recovered
           ];
           
-          const current = steps[Math.min(simStep, steps.length - 1)];
+          const current = steps[Math.min(simStepRef.current, steps.length - 1)];
           reading = {
             voltage1: current.v + (Math.random() * 2 - 1),
             voltage2: 0,
@@ -88,7 +89,9 @@ export default function Dashboard() {
             quality: current.q,
             timestamp: new Date().toISOString()
           };
-          setSimStep(prev => (prev + 1) % steps.length);
+          
+          // Increment step for next poll
+          simStepRef.current = (simStepRef.current + 1) % steps.length;
         } else {
           // Fetch from ThingSpeak
           const res = await axios.get(`https://api.thingspeak.com/channels/${TS_CHANNEL}/feeds/last.json?api_key=${TS_KEY}`);
@@ -144,7 +147,7 @@ export default function Dashboard() {
     poll(); // Initial call
     const interval = setInterval(poll, isSimulating ? 5000 : 15000); // 5s simulation steps
     return () => clearInterval(interval);
-  }, [alarmAcked, alarmActive, isSimulating, simStep]); 
+  }, [alarmAcked, alarmActive, isSimulating]); 
 
   if (!data) return (
     <div className="flex h-screen items-center justify-center bg-slate-950 text-cyan-500">
