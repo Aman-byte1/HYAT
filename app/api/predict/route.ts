@@ -22,7 +22,7 @@ export async function GET() {
       health: healthAnalysis,
       samples: readings.length
     });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Failed to generate prediction' }, { status: 500 });
   }
 }

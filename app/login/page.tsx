@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { login } from '@/lib/auth';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,7 +31,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl relative z-10">
         <div className="text-center mb-10">
           <div className="inline-flex p-5 rounded-3xl bg-slate-800/50 mb-6 border border-slate-700 shadow-inner">
-            <img src="/logo.png" alt="HYAT Logo" className="w-16 h-16 object-contain" />
+            <Image src="/logo.png" alt="HYAT Logo" width={64} height={64} className="object-contain" />
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight mb-2">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">HYAT</span> ADMIN

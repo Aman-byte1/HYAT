@@ -7,30 +7,30 @@ export async function GET() {
       orderBy: { timestamp: 'desc' },
       take: 100,
     });
-    return NextResponse.json(readings);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch readings' }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { voltage1, voltage2, voltage3, temp, oilLevel, quality } = body;
+        return NextResponse.json(readings);
+      } catch (_error) {
+        return NextResponse.json({ error: 'Failed to fetch readings' }, { status: 500 });
+      }
+    }
     
-    const reading = await prisma.reading.create({
-      data: {
-        voltage1,
-        voltage2: voltage2 || 0,
-        voltage3: voltage3 || 0,
-        temp,
-        oilLevel,
-        quality,
-      },
-    });
+    export async function POST(request: Request) {
+      try {
+        const body = await request.json();
+        const { voltage1, voltage2, voltage3, temp, oilLevel, quality } = body;       
     
-    return NextResponse.json(reading);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to save reading' }, { status: 500 });
-  }
-}
+        const reading = await prisma.reading.create({
+          data: {
+            voltage1,
+            voltage2: voltage2 || 0,
+            voltage3: voltage3 || 0,
+            temp,
+            oilLevel,
+            quality,
+          },
+        });
+        
+        return NextResponse.json(reading);
+      } catch (_error) {
+        return NextResponse.json({ error: 'Failed to save reading' }, { status: 500 });
+      }
+    }
