@@ -110,7 +110,7 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [alarmAcked, alarmActive]); // Depend on ack and active state
 
-  if (loading && !data) return (
+  if (!data) return (
     <div className="flex h-screen items-center justify-center bg-slate-950 text-cyan-500">
       <div className="animate-pulse text-2xl font-bold">Initializing SCADA Uplink...</div>
     </div>
