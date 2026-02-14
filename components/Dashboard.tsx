@@ -176,7 +176,7 @@ export default function Dashboard() {
             <iframe 
               width="100%" 
               height="100%" 
-              src="https://maps.google.com/maps?q=9.018472,38.750917&z=15&output=embed"
+              src="https://maps.google.com/maps?q=9.018472,38.750917&t=&z=15&ie=UTF8&iwloc=&output=embed"
               style={{ border: 0 }}
               allowFullScreen
               loading="lazy"
