@@ -25,13 +25,10 @@ export default function Dashboard() {
   const [data, setData] = useState<Reading | null>(null);
   const [history, setHistory] = useState<Reading[]>([]);
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [alarmActive, setAlarmActive] = useState(false);
   const [alarmAcked, setAlarmAcked] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const simStepRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
 
@@ -51,65 +48,26 @@ export default function Dashboard() {
     setAlarmActive(false);
   };
 
-  const toggleSimulation = () => {
-    const newSimState = !isSimulating;
-    setIsSimulating(newSimState);
-    simStepRef.current = 0;
-    setAlarmAcked(false);
-    setAlarmActive(false);
-  };
-
-  // Poll Logic (Real or Simulated)
+  // Poll Logic (Real)
   useEffect(() => {
     const poll = async () => {
       try {
-        let reading: Reading;
-
-        if (isSimulating) {
-          // Simulation Sequence
-          const steps = [
-            { v: 225, c: 45, t: 52, o: 88, q: 94 }, // Normal
-            { v: 210, c: 42, t: 54, o: 88, q: 92 }, // Normal
-            { v: 195, c: 38, t: 58, o: 88, q: 85 }, // Degrading (AI starts predicting)
-            { v: 170, c: 30, t: 62, o: 88, q: 75 }, // Critical
-            { v: 35,  c: 5,  t: 65, o: 88, q: 40 }, // FAILURE (Alarm)
-            { v: 220, c: 40, t: 55, o: 88, q: 90 }, // Recovered
-          ];
-          
-          const current = steps[Math.min(simStepRef.current, steps.length - 1)];
-          reading = {
-            voltage1: current.v + (Math.random() * 2 - 1),
-            voltage2: 0,
-            voltage3: 0,
-            current1: current.c + (Math.random() * 1 - 0.5),
-            current2: 0,
-            current3: 0,
-            temp: current.t,
-            oilLevel: current.o,
-            quality: current.q,
-            timestamp: new Date().toISOString()
-          };
-          
-          // Increment step for next poll
-          simStepRef.current = (simStepRef.current + 1) % steps.length;
-        } else {
-          // Fetch from ThingSpeak
-          const res = await axios.get(`https://api.thingspeak.com/channels/${TS_CHANNEL}/feeds/last.json?api_key=${TS_KEY}`);
-          const feed = res.data;
-          
-          reading = {
-            voltage1: parseFloat(feed.field1) || 0,
-            voltage2: 0,
-            voltage3: 0,
-            current1: parseFloat(feed.field5) || 0,
-            current2: 0,
-            current3: 0,
-            temp: parseFloat(feed.field2) || 0,
-            oilLevel: parseFloat(feed.field3) || 0,
-            quality: parseFloat(feed.field4) || 0,
-            timestamp: new Date().toISOString()
-          };
-        }
+        // Fetch from ThingSpeak
+        const res = await axios.get(`https://api.thingspeak.com/channels/${TS_CHANNEL}/feeds/last.json?api_key=${TS_KEY}`);
+        const feed = res.data;
+        
+        const reading: Reading = {
+          voltage1: parseFloat(feed.field1) || 0,
+          voltage2: 0,
+          voltage3: 0,
+          current1: 0,
+          current2: 0,
+          current3: 0,
+          temp: parseFloat(feed.field2) || 0,
+          oilLevel: parseFloat(feed.field3) || 0,
+          quality: parseFloat(feed.field4) || 0,
+          timestamp: new Date().toISOString()
+        };
 
         setData(reading);
         setLastUpdated(new Date());
@@ -139,15 +97,13 @@ export default function Dashboard() {
       } catch (err) {
         console.error("Polling error", err);
         setError('Connection lost... Retrying');
-      } finally {
-        setLoading(false);
       }
     };
 
     poll(); // Initial call
-    const interval = setInterval(poll, isSimulating ? 5000 : 15000); // 5s simulation steps
+    const interval = setInterval(poll, 15000); 
     return () => clearInterval(interval);
-  }, [alarmAcked, alarmActive, isSimulating]); 
+  }, [alarmAcked, alarmActive]); 
 
   if (!data) return (
     <div className="flex h-screen items-center justify-center bg-slate-950 text-cyan-500">
@@ -157,16 +113,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-6 md:p-12 font-sans selection:bg-cyan-500/30 relative overflow-hidden">
-      {/* Simulation Controls Overlay (Bottom Right) */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button 
-          onClick={toggleSimulation}
-          className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${isSimulating ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
-        >
-          {isSimulating ? 'SIMULATION ACTIVE' : 'START DEMO MODE'}
-        </button>
-      </div>
-
       {/* Alarm Overlay */}
       {alarmActive && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-red-900/50 backdrop-blur-sm animate-pulse">
