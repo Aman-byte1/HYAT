@@ -63,8 +63,8 @@ export default function Dashboard() {
           current1: 0,
           current2: 0,
           current3: 0,
-          temp: parseFloat(feed.field2) || 0,
-          oilLevel: parseFloat(feed.field3) || 0,
+          temp: parseFloat(feed.field3) || 0,
+          oilLevel: parseFloat(feed.field2) || 0,
           quality: parseFloat(feed.field4) || 0,
           timestamp: new Date().toISOString()
         };
