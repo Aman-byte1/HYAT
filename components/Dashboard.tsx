@@ -247,7 +247,7 @@ export default function Dashboard() {
         <Gauge 
           value={data.temp} 
           min={0} max={100} 
-          label="Temperature" 
+          label="top oil Temperature" 
           unit="°C" 
           warnHigh={80} 
           color="#06b6d4" 
