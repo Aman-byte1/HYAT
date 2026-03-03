@@ -11,9 +11,9 @@ export default function InstallPrompt() {
     // Check if dismissed recently
     const dismissedAt = localStorage.getItem("pwa_prompt_dismissed");
     if (dismissedAt) {
-      const daysSinceDismissed = (Date.now() - parseInt(dismissedAt, 10)) / (1000 * 60 * 60 * 24);
-      if (daysSinceDismissed < 7) {
-        return; // Don't show again for 7 days
+      const minutesSinceDismissed = (Date.now() - parseInt(dismissedAt, 10)) / (1000 * 60);
+      if (minutesSinceDismissed < 5) {
+        return; // Don't show again for 5 minutes
       }
     }
 
