@@ -24,6 +24,7 @@ export function calculateHealthScore(reading: Reading) {
   // Temp Penalty (Ideal: < 60)
   if (reading.temp > 90) score -= 40;
   else if (reading.temp > 75) score -= 15;
+  else if (reading.temp > 59) score -= 5;
 
   // Oil Level Penalty (Ideal: > 40)
   if (reading.oilLevel > 0) {

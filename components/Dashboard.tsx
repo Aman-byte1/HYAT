@@ -130,7 +130,7 @@ export default function Dashboard() {
     // Fallback
     if (!data) return { text: 'UNKNOWN', color: 'slate' };
     if (data.temp > 90 || data.voltage1 < 50) return { text: 'CRITICAL', color: 'red' };
-    if (data.temp > 75) return { text: 'WARNING', color: 'amber' };
+    if (data.temp > 59) return { text: 'WARNING', color: 'amber' };
     return { text: 'NORMAL', color: 'emerald' };
   };
 
