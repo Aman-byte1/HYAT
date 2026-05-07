@@ -67,16 +67,15 @@ export default function Dashboard() {
         
         const sensorVoltage = parseFloat(feed.field1) || 0;
         const sensorTemp = parseFloat(feed.field3) || 0;
-        const sensorCurrent = parseFloat(feed.field5) || 0;
         
         // Single voltage sensor → replicate across all 3 phases
         const reading: Reading = {
           voltage1: sensorVoltage,
           voltage2: sensorVoltage,
           voltage3: sensorVoltage,
-          current1: sensorCurrent,
-          current2: sensorCurrent,
-          current3: sensorCurrent,
+          current1: 0,
+          current2: 0,
+          current3: 0,
           temp: sensorTemp,
           oilLevel: feed.field2 ? parseFloat(feed.field2) : 0,
           quality: feed.field4 ? parseFloat(feed.field4) : 0,
@@ -278,6 +277,46 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* ── 3-Phase Current Section (No Sensor) ── */}
+      <section className="section-panel">
+        <div className="section-header">
+          <div className="section-title-row">
+            <span className="section-icon">🔌</span>
+            <h2 className="section-title">3-Phase Current Monitoring</h2>
+          </div>
+          <span className="section-badge">Offline / No Sensor</span>
+        </div>
+        <div className="phase-grid">
+          <Gauge 
+            value={data.current1} 
+            min={0} max={100} 
+            label="Phase L1" 
+            unit="A" 
+            warnHigh={80} 
+            color="#3b82f6"
+            icon={<span style={{color:'#3b82f6'}}>🔌</span>}
+          />
+          <Gauge 
+            value={data.current2} 
+            min={0} max={100} 
+            label="Phase L2" 
+            unit="A" 
+            warnHigh={80} 
+            color="#3b82f6"
+            icon={<span style={{color:'#3b82f6'}}>🔌</span>}
+          />
+          <Gauge 
+            value={data.current3} 
+            min={0} max={100} 
+            label="Phase L3" 
+            unit="A" 
+            warnHigh={80} 
+            color="#3b82f6"
+            icon={<span style={{color:'#3b82f6'}}>🔌</span>}
+          />
+        </div>
+      </section>
+
       {/* ── Sensor Readings Section ── */}
       <section className="section-panel">
         <div className="section-header">
@@ -287,15 +326,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="sensor-grid">
-          <Gauge 
-            value={data.current1} 
-            min={0} max={100} 
-            label="Phase Current" 
-            unit="A" 
-            warnHigh={80} 
-            color="#3b82f6"
-            icon={<span style={{color: '#3b82f6'}}>🔌</span>}
-          />
           <Gauge 
             value={data.temp} 
             min={0} max={120} 

@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"python ml_server/predict_server.py\" \"next dev\"",
     "build": "prisma generate && next build --webpack",
-    "start": "next start",
+    "start": "concurrently \"python ml_server/predict_server.py\" \"next start\"",
     "lint": "eslint"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",
+    "concurrently": "^9.2.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
