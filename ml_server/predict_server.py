@@ -13,7 +13,7 @@ from flask_cors import CORS
 
 # Paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = os.path.join(SCRIPT_DIR, "..", "ml_models")
+MODEL_DIR = os.path.join(SCRIPT_DIR, "ml_models")
 
 app = Flask(__name__)
 CORS(app)
