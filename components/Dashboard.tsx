@@ -67,18 +67,19 @@ export default function Dashboard() {
         
         const sensorVoltage = parseFloat(feed.field1) || 0;
         const sensorTemp = parseFloat(feed.field3) || 0;
+        const sensorCurrent = parseFloat(feed.field5) || 0;
         
         // Single voltage sensor → replicate across all 3 phases
         const reading: Reading = {
           voltage1: sensorVoltage,
           voltage2: sensorVoltage,
           voltage3: sensorVoltage,
-          current1: 0,
-          current2: 0,
-          current3: 0,
+          current1: sensorCurrent,
+          current2: sensorCurrent,
+          current3: sensorCurrent,
           temp: sensorTemp,
-          oilLevel: parseFloat(feed.field2) || 0,
-          quality: parseFloat(feed.field4) || 0,
+          oilLevel: feed.field2 ? parseFloat(feed.field2) : 0,
+          quality: feed.field4 ? parseFloat(feed.field4) : 0,
           timestamp: new Date().toISOString()
         };
 
@@ -120,10 +121,18 @@ export default function Dashboard() {
 
   // Get transformer status
   const getTransformerStatus = () => {
+    if (prediction?.ml?.active) {
+      const label = prediction.ml.riskLabel;
+      if (label === 'CRITICAL') return { text: 'CRITICAL', color: 'red' };
+      if (label === 'WARNING') return { text: 'WARNING', color: 'amber' };
+      if (label === 'CAUTION') return { text: 'CAUTION', color: 'yellow' };
+      if (label === 'NORMAL') return { text: 'NORMAL', color: 'emerald' };
+    }
+    // Fallback
     if (!data) return { text: 'UNKNOWN', color: 'slate' };
     if (data.temp > 90 || data.voltage1 < 50) return { text: 'CRITICAL', color: 'red' };
-    if (data.temp > 75 || data.oilLevel < 20) return { text: 'WARNING', color: 'amber' };
-    return { text: 'OPTIMAL', color: 'emerald' };
+    if (data.temp > 75) return { text: 'WARNING', color: 'amber' };
+    return { text: 'NORMAL', color: 'emerald' };
   };
 
   const txStatus = getTransformerStatus();
@@ -199,6 +208,13 @@ export default function Dashboard() {
             <span className="stat-card-value">{data.voltage1.toFixed(1)}<span className="stat-card-unit">V</span></span>
           </div>
         </div>
+        <div className="stat-card stat-card--current" style={{ borderTop: '2px solid #3b82f6', background: 'rgba(59, 130, 246, 0.05)' }}>
+          <div className="stat-card-icon" style={{color: '#3b82f6'}}>🔌</div>
+          <div className="stat-card-content">
+            <span className="stat-card-label">Current (Avg)</span>
+            <span className="stat-card-value">{data.current1.toFixed(1)}<span className="stat-card-unit">A</span></span>
+          </div>
+        </div>
         <div className="stat-card stat-card--temp">
           <div className="stat-card-icon">🌡️</div>
           <div className="stat-card-content">
@@ -271,6 +287,15 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="sensor-grid">
+          <Gauge 
+            value={data.current1} 
+            min={0} max={100} 
+            label="Phase Current" 
+            unit="A" 
+            warnHigh={80} 
+            color="#3b82f6"
+            icon={<span style={{color: '#3b82f6'}}>🔌</span>}
+          />
           <Gauge 
             value={data.temp} 
             min={0} max={120} 

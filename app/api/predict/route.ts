@@ -29,6 +29,7 @@ export async function GET() {
           voltage: latest.voltage1,
           temperature: latest.temp,
           oilLevel: latest.oilLevel,
+          current: latest.current1,
         }),
         signal: AbortSignal.timeout(3000), // 3s timeout
       });

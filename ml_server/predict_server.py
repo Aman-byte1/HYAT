@@ -81,22 +81,29 @@ SAFE_DEFAULTS = {
 }
 
 
-def build_feature_vector(voltage: float, temperature: float, oil_level: float) -> list:
+def build_feature_vector(voltage: float, temperature: float, oil_level: float, current: float) -> list:
     """
     Map our 3 available sensor values into the 55-feature vector.
     Uses safe defaults for missing sensors, computes engineered features.
     """
     features = dict(SAFE_DEFAULTS)
 
-    # Override with actual sensor data
-    features["VL1"] = voltage
-    features["VL2"] = voltage
-    features["VL3"] = voltage
-    features["VL12"] = voltage * 1.732  # Line-to-line ≈ phase * √3
-    features["VL23"] = voltage * 1.732
-    features["VL31"] = voltage * 1.732
-    features["OTI"] = temperature
-    features["OLI"] = oil_level
+    # Override with actual sensor data, only if valid (avoid 0 indicating missing sensor)
+    if voltage > 0:
+        features["VL1"] = voltage
+        features["VL2"] = voltage
+        features["VL3"] = voltage
+        features["VL12"] = voltage * 1.732  # Line-to-line ≈ phase * √3
+        features["VL23"] = voltage * 1.732
+        features["VL31"] = voltage * 1.732
+    if temperature > 0:
+        features["OTI"] = temperature
+    if oil_level > 0:
+        features["OLI"] = oil_level
+    if current > 0:
+        features["IL1"] = current
+        features["IL2"] = current
+        features["IL3"] = current
 
     # Compute engineered features from available data
     v_mean = voltage if voltage > 0 else 1
@@ -127,9 +134,10 @@ def predict():
         voltage = float(data.get("voltage", 0))
         temperature = float(data.get("temperature", 0))
         oil_level = float(data.get("oilLevel", 0))
+        current = float(data.get("current", 0))
 
         # Build feature vector
-        raw_vector = build_feature_vector(voltage, temperature, oil_level)
+        raw_vector = build_feature_vector(voltage, temperature, oil_level, current)
 
         # Scale features
         X = scaler.transform([raw_vector])
