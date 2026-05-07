@@ -8,8 +8,8 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# Path to models relative to the project root
-MODEL_DIR = os.path.join(os.getcwd(), "ml_models")
+# Path to models relative to this file
+MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml_models")
 
 # Load model, scaler, and feature list at startup
 model = joblib.load(os.path.join(MODEL_DIR, "xgboost.joblib"))

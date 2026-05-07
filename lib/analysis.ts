@@ -26,11 +26,15 @@ export function calculateHealthScore(reading: Reading) {
   else if (reading.temp > 75) score -= 15;
 
   // Oil Level Penalty (Ideal: > 40)
-  if (reading.oilLevel < 20) score -= 30;
-  else if (reading.oilLevel < 40) score -= 10;
+  if (reading.oilLevel > 0) {
+    if (reading.oilLevel < 20) score -= 30;
+    else if (reading.oilLevel < 40) score -= 10;
+  }
 
   // Quality Penalty (Direct impact)
-  if (reading.quality < 70) score -= (70 - reading.quality);
+  if (reading.quality > 0) {
+    if (reading.quality < 70) score -= (70 - reading.quality);
+  }
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
