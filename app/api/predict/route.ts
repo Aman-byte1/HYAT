@@ -23,7 +23,9 @@ export async function GET(request: Request) {
     // Try ML model prediction first
     let mlPrediction = null;
     try {
-      const mlRes = await fetch(`${origin}/api/ml_predict`, {
+      const baseUrl = process.env.ML_SERVER_URL || 'http://localhost:5001';
+      
+      const mlRes = await fetch(`${baseUrl}/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
