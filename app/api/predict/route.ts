@@ -4,8 +4,9 @@ import { calculateRegression } from '@/lib/analysis';
 
 const ML_SERVER_URL = process.env.ML_SERVER_URL || 'http://localhost:5001';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { origin } = new URL(request.url);
     // Get last 100 readings
     const readings = await prisma.reading.findMany({
       orderBy: { timestamp: 'desc' },
@@ -22,12 +23,7 @@ export async function GET() {
     // Try ML model prediction first
     let mlPrediction = null;
     try {
-      // For Vercel, we call our own python api at /api/ml_predict
-      // If ML_SERVER_URL is set (e.g. Railway), use that.
-      const baseUrl = process.env.ML_SERVER_URL || 
-                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-      
-      const mlRes = await fetch(`${baseUrl}/api/ml_predict`, {
+      const mlRes = await fetch(`${origin}/api/ml_predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
