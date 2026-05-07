@@ -22,7 +22,12 @@ export async function GET() {
     // Try ML model prediction first
     let mlPrediction = null;
     try {
-      const mlRes = await fetch(`${ML_SERVER_URL}/predict`, {
+      // For Vercel, we call our own python api at /api/ml_predict
+      // If ML_SERVER_URL is set (e.g. Railway), use that.
+      const baseUrl = process.env.ML_SERVER_URL || 
+                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+      
+      const mlRes = await fetch(`${baseUrl}/api/ml_predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -31,7 +36,7 @@ export async function GET() {
           oilLevel: latest.oilLevel,
           current: latest.current1,
         }),
-        signal: AbortSignal.timeout(3000), // 3s timeout
+        signal: AbortSignal.timeout(8000), // Increased timeout for serverless cold starts
       });
 
       if (mlRes.ok) {
