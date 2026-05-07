@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
 });
 
@@ -52,7 +52,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
+        style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
       >
         {children}
         <InstallPrompt />

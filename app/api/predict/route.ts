@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateRegression } from '@/lib/analysis';
 
+const ML_SERVER_URL = process.env.ML_SERVER_URL || 'http://localhost:5001';
+
 export async function GET() {
   try {
     // Get last 100 readings
@@ -14,13 +16,53 @@ export async function GET() {
       return NextResponse.json({ ready: false });
     }
 
-    // Predict Health Score instead of raw values
+    // Get the latest reading for ML prediction
+    const latest = readings[0];
+
+    // Try ML model prediction first
+    let mlPrediction = null;
+    try {
+      const mlRes = await fetch(`${ML_SERVER_URL}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voltage: latest.voltage1,
+          temperature: latest.temp,
+          oilLevel: latest.oilLevel,
+        }),
+        signal: AbortSignal.timeout(3000), // 3s timeout
+      });
+
+      if (mlRes.ok) {
+        mlPrediction = await mlRes.json();
+      }
+    } catch {
+      // ML server unavailable, fall back to regression
+      console.log('[Predict API] ML server unavailable, using regression fallback');
+    }
+
+    // Regression-based analysis (always compute as fallback / supplement)
     const healthAnalysis = calculateRegression(readings, 'health');
 
     return NextResponse.json({
       ready: true,
-      health: healthAnalysis,
-      samples: readings.length
+      health: {
+        current: mlPrediction ? mlPrediction.healthScore : healthAnalysis.current,
+        predicted: healthAnalysis.predicted,
+        direction: healthAnalysis.direction,
+      },
+      ml: mlPrediction ? {
+        active: true,
+        prediction: mlPrediction.prediction,
+        confidence: mlPrediction.confidence,
+        failureProbability: mlPrediction.failureProbability,
+        riskLabel: mlPrediction.riskLabel,
+        model: mlPrediction.model,
+      } : {
+        active: false,
+        model: 'Regression Fallback',
+      },
+      samples: readings.length,
     });
   } catch (_error) {
     return NextResponse.json({ error: 'Failed to generate prediction' }, { status: 500 });

@@ -19,6 +19,14 @@ interface PredictionData {
     predicted: number;
     direction: string;
   };
+  ml?: {
+    active: boolean;
+    prediction?: number;
+    confidence?: number;
+    failureProbability?: number;
+    riskLabel?: string;
+    model?: string;
+  };
 }
 
 export default function Dashboard() {
@@ -29,6 +37,7 @@ export default function Dashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [alarmActive, setAlarmActive] = useState(false);
   const [alarmAcked, setAlarmAcked] = useState(false);
+  const [activeChart, setActiveChart] = useState<'voltage' | 'temperature' | 'all'>('voltage');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
 
@@ -56,14 +65,18 @@ export default function Dashboard() {
         const res = await axios.get(`https://api.thingspeak.com/channels/${TS_CHANNEL}/feeds/last.json?api_key=${TS_KEY}`);
         const feed = res.data;
         
+        const sensorVoltage = parseFloat(feed.field1) || 0;
+        const sensorTemp = parseFloat(feed.field3) || 0;
+        
+        // Single voltage sensor → replicate across all 3 phases
         const reading: Reading = {
-          voltage1: parseFloat(feed.field1) || 0,
-          voltage2: 0,
-          voltage3: 0,
+          voltage1: sensorVoltage,
+          voltage2: sensorVoltage,
+          voltage3: sensorVoltage,
           current1: 0,
           current2: 0,
           current3: 0,
-          temp: parseFloat(feed.field3) || 0,
+          temp: sensorTemp,
           oilLevel: parseFloat(feed.field2) || 0,
           quality: parseFloat(feed.field4) || 0,
           timestamp: new Date().toISOString()
@@ -105,25 +118,47 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [alarmAcked, alarmActive]); 
 
+  // Get transformer status
+  const getTransformerStatus = () => {
+    if (!data) return { text: 'UNKNOWN', color: 'slate' };
+    if (data.temp > 90 || data.voltage1 < 50) return { text: 'CRITICAL', color: 'red' };
+    if (data.temp > 75 || data.oilLevel < 20) return { text: 'WARNING', color: 'amber' };
+    return { text: 'OPTIMAL', color: 'emerald' };
+  };
+
+  const txStatus = getTransformerStatus();
+
   if (!data) return (
-    <div className="flex h-screen items-center justify-center bg-slate-950 text-cyan-500">
-      <div className="animate-pulse text-2xl font-bold">Initializing SCADA Uplink...</div>
+    <div className="loading-screen">
+      <div className="loading-spinner" />
+      <div className="loading-text">Initializing SCADA Uplink...</div>
+      <div className="loading-sub">Connecting to transformer sensors</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 p-6 md:p-12 font-sans selection:bg-cyan-500/30 relative overflow-hidden">
+    <div className="dashboard">
       {/* Alarm Overlay */}
       {alarmActive && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-red-900/50 backdrop-blur-sm animate-pulse">
-          <div className="bg-slate-900 border-4 border-red-500 p-10 rounded-3xl text-center shadow-[0_0_100px_rgba(220,38,38,0.5)]">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h1 className="text-4xl font-black text-red-500 mb-2">POWER FAILURE DETECTED</h1>
-            <p className="text-xl text-white mb-8">Voltage Critical: {data?.voltage1}V</p>
-            <button 
-              onClick={handleAckAlarm}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg transition-transform active:scale-95"
-            >
+        <div className="alarm-overlay">
+          <div className="alarm-card">
+            <div className="alarm-icon-ring">
+              <span className="alarm-icon">⚠️</span>
+            </div>
+            <h1 className="alarm-title">POWER FAILURE DETECTED</h1>
+            <p className="alarm-subtitle">Voltage Critical: <strong>{data?.voltage1.toFixed(1)}V</strong></p>
+            <div className="alarm-details">
+              <div className="alarm-detail-row">
+                <span>Phase L1</span><span className="alarm-detail-val">{data?.voltage1.toFixed(1)}V</span>
+              </div>
+              <div className="alarm-detail-row">
+                <span>Phase L2</span><span className="alarm-detail-val">{data?.voltage2.toFixed(1)}V</span>
+              </div>
+              <div className="alarm-detail-row">
+                <span>Phase L3</span><span className="alarm-detail-val">{data?.voltage3.toFixed(1)}V</span>
+              </div>
+            </div>
+            <button onClick={handleAckAlarm} className="alarm-btn">
               ACKNOWLEDGE & SILENCE
             </button>
           </div>
@@ -134,45 +169,278 @@ export default function Dashboard() {
         <source src="/alarm.mp3" type="audio/mp3" />
       </audio>
 
-      {/* Header */}
-      <header className="mb-10 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6">
-        <div className="flex items-center gap-4">
-          <Image src="/logo.png" alt="HYAT Logo" width={48} height={48} className="object-contain" />
+      {/* ── Header ── */}
+      <header className="dash-header">
+        <div className="dash-header-left">
+          <Image src="/logo.png" alt="HYAT Logo" width={40} height={40} className="dash-logo" />
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">HYAT</span> SCADA
+            <h1 className="dash-title">
+              <span className="dash-title-accent">HYAT</span> SCADA
             </h1>
-            <p className="text-slate-500 text-sm font-mono">ID: 315KVA-01 • ADDIS ABABA</p>
+            <p className="dash-subtitle">Transformer ID: 315KVA-01 • Addis Ababa</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 mt-4 md:mt-0">
-          <button 
-            onClick={handleLogout}
-            className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest mr-4"
-          >
-            Logout
-          </button>
-          <div className={`px-3 py-1 rounded-full text-xs font-bold border ${error ? 'bg-red-900/20 border-red-500 text-red-500' : 'bg-emerald-900/20 border-emerald-500 text-emerald-500'}`}>
-            {error ? 'OFFLINE' : 'LIVE UPLINK'}
+        <div className="dash-header-right">
+          <button onClick={handleLogout} className="dash-logout-btn">Logout</button>
+          <div className={`dash-status-badge ${error ? 'dash-status-badge--offline' : 'dash-status-badge--live'}`}>
+            <span className="dash-status-dot" />
+            {error ? 'OFFLINE' : 'LIVE'}
           </div>
-          <div className="text-xs text-slate-600 font-mono">
-            {lastUpdated?.toLocaleTimeString()}
-          </div>
+          <span className="dash-time">{lastUpdated?.toLocaleTimeString()}</span>
         </div>
       </header>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        {/* Location Card */}
-        <div className="bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-700 p-6 shadow-xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">📍</span>
-              <h3 className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Site Location</h3>
-            </div>
-            <p className="text-xs font-mono text-cyan-500 mb-4">ADDIS ABABA: 9.018472, 38.750917</p>
+      {/* ── Top Stats Row ── */}
+      <div className="stats-row">
+        <div className="stat-card stat-card--primary">
+          <div className="stat-card-icon">⚡</div>
+          <div className="stat-card-content">
+            <span className="stat-card-label">Voltage (Avg)</span>
+            <span className="stat-card-value">{data.voltage1.toFixed(1)}<span className="stat-card-unit">V</span></span>
           </div>
-          <div className="rounded-xl overflow-hidden border border-slate-800 h-32">
+        </div>
+        <div className="stat-card stat-card--temp">
+          <div className="stat-card-icon">🌡️</div>
+          <div className="stat-card-content">
+            <span className="stat-card-label">Temperature</span>
+            <span className="stat-card-value">{data.temp.toFixed(1)}<span className="stat-card-unit">°C</span></span>
+          </div>
+        </div>
+        <div className="stat-card stat-card--oil">
+          <div className="stat-card-icon">🛢️</div>
+          <div className="stat-card-content">
+            <span className="stat-card-label">Oil Level</span>
+            <span className="stat-card-value">{data.oilLevel.toFixed(1)}<span className="stat-card-unit">%</span></span>
+          </div>
+        </div>
+        <div className={`stat-card stat-card--status stat-card--${txStatus.color}`}>
+          <div className="stat-card-icon">🔧</div>
+          <div className="stat-card-content">
+            <span className="stat-card-label">Transformer</span>
+            <span className="stat-card-value stat-card-value--status">{txStatus.text}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3-Phase Voltage Section ── */}
+      <section className="section-panel">
+        <div className="section-header">
+          <div className="section-title-row">
+            <span className="section-icon">⚡</span>
+            <h2 className="section-title">3-Phase Voltage Monitoring</h2>
+          </div>
+          <span className="section-badge">Single Sensor → 3-Phase</span>
+        </div>
+        <div className="phase-grid">
+          <Gauge 
+            value={data.voltage1} 
+            min={0} max={300} 
+            label="Phase L1" 
+            unit="V" 
+            warnLow={200} warnHigh={240} 
+            color="#10b981"
+            icon={<span style={{color:'#10b981'}}>⚡</span>}
+          />
+          <Gauge 
+            value={data.voltage2} 
+            min={0} max={300} 
+            label="Phase L2" 
+            unit="V" 
+            warnLow={200} warnHigh={240} 
+            color="#06b6d4"
+            icon={<span style={{color:'#06b6d4'}}>⚡</span>}
+          />
+          <Gauge 
+            value={data.voltage3} 
+            min={0} max={300} 
+            label="Phase L3" 
+            unit="V" 
+            warnLow={200} warnHigh={240} 
+            color="#8b5cf6"
+            icon={<span style={{color:'#8b5cf6'}}>⚡</span>}
+          />
+        </div>
+      </section>
+
+      {/* ── Sensor Readings Section ── */}
+      <section className="section-panel">
+        <div className="section-header">
+          <div className="section-title-row">
+            <span className="section-icon">📡</span>
+            <h2 className="section-title">Sensor Readings</h2>
+          </div>
+        </div>
+        <div className="sensor-grid">
+          <Gauge 
+            value={data.temp} 
+            min={0} max={120} 
+            label="Oil Temperature" 
+            unit="°C" 
+            warnHigh={80} 
+            color="#f97316"
+            icon={<span>🌡️</span>}
+          />
+          <Gauge 
+            value={data.oilLevel} 
+            min={0} max={100} 
+            label="Oil Level" 
+            unit="%" 
+            warnLow={20} 
+            color="#f59e0b"
+            icon={<span>🛢️</span>}
+          />
+          <Gauge 
+            value={data.quality} 
+            min={0} max={100} 
+            label="Power Quality" 
+            unit="%" 
+            warnLow={70} 
+            color="#8b5cf6"
+            icon={<span>📊</span>}
+          />
+        </div>
+      </section>
+
+      {/* ── Charts Section ── */}
+      <section className="section-panel">
+        <div className="section-header">
+          <div className="section-title-row">
+            <span className="section-icon">📈</span>
+            <h2 className="section-title">Live Trends</h2>
+          </div>
+          <div className="chart-tabs">
+            <button 
+              className={`chart-tab ${activeChart === 'voltage' ? 'chart-tab--active' : ''}`}
+              onClick={() => setActiveChart('voltage')}
+            >⚡ Voltage</button>
+            <button 
+              className={`chart-tab ${activeChart === 'temperature' ? 'chart-tab--active' : ''}`}
+              onClick={() => setActiveChart('temperature')}
+            >🌡️ Temperature</button>
+            <button 
+              className={`chart-tab ${activeChart === 'all' ? 'chart-tab--active' : ''}`}
+              onClick={() => setActiveChart('all')}
+            >📊 Overview</button>
+          </div>
+        </div>
+        <HistoryChart data={history} mode={activeChart} />
+      </section>
+
+      {/* ── Bottom Row: AI + Status + Map ── */}
+      <div className="bottom-grid">
+        {/* AI Prediction */}
+        <div className="panel ai-panel">
+          <div className="panel-header">
+            <span className="panel-icon">🤖</span>
+            <h3 className="panel-title">AI Health Forecast</h3>
+            {prediction?.ml?.active && (
+              <span className="ml-badge">ML ACTIVE</span>
+            )}
+          </div>
+          {prediction && prediction.ready ? (
+            <div className="ai-content">
+              {/* ML Risk Label */}
+              {prediction.ml?.active && (
+                <div className={`ml-risk-card ml-risk-card--${prediction.ml.riskLabel?.toLowerCase()}`}>
+                  <div className="ml-risk-label">{prediction.ml.riskLabel}</div>
+                  <div className="ml-risk-details">
+                    <span>Failure Prob: <strong>{prediction.ml.failureProbability}%</strong></span>
+                    <span>Confidence: <strong>{prediction.ml.confidence}%</strong></span>
+                  </div>
+                  <div className="ml-model-tag">{prediction.ml.model}</div>
+                </div>
+              )}
+              <div className="ai-score-block">
+                <div className="ai-score-header">
+                  <span className="ai-score-label">Current Health</span>
+                  <span className={`ai-score-value ${prediction.health.current < 70 ? 'ai-score-value--warn' : ''}`}>
+                    {prediction.health.current}%
+                  </span>
+                </div>
+                <div className="ai-bar-track">
+                  <div 
+                    className={`ai-bar-fill ${prediction.health.current < 70 ? 'ai-bar-fill--warn' : ''}`}
+                    style={{ width: `${prediction.health.current}%` }}
+                  />
+                </div>
+              </div>
+              <div className="ai-score-block">
+                <div className="ai-score-header">
+                  <span className="ai-score-label">Predicted (15m)</span>
+                  <span className={`ai-score-value ${prediction.health.predicted < 70 ? 'ai-score-value--danger' : 'ai-score-value--cyan'}`}>
+                    {prediction.health.predicted}%
+                  </span>
+                </div>
+                <div className="ai-bar-track">
+                  <div 
+                    className={`ai-bar-fill ${prediction.health.predicted < 70 ? 'ai-bar-fill--danger' : 'ai-bar-fill--cyan'}`}
+                    style={{ width: `${prediction.health.predicted}%` }}
+                  />
+                </div>
+                <div className="ai-direction">{prediction.health.direction}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="ai-loading">
+              <div className="ai-loading-pulse" />
+              <span>Collecting data for prediction...</span>
+            </div>
+          )}
+        </div>
+
+        {/* System Status */}
+        <div className="panel status-panel">
+          <div className="panel-header">
+            <span className="panel-icon">🔋</span>
+            <h3 className="panel-title">System Status</h3>
+          </div>
+          <div className="status-rows">
+            <div className="status-row">
+              <span className="status-row-label">Transformer</span>
+              <span className={`status-row-badge status-row-badge--${txStatus.color}`}>{txStatus.text}</span>
+            </div>
+            <div className="status-row">
+              <span className="status-row-label">Cooling System</span>
+              <span className="status-row-badge status-row-badge--emerald">ACTIVE</span>
+            </div>
+            <div className="status-row">
+              <span className="status-row-label">Security Breach</span>
+              <span className="status-row-badge status-row-badge--slate">NONE</span>
+            </div>
+            <div className="status-row">
+              <span className="status-row-label">Temp Sensor</span>
+              <span className={`status-row-badge ${data.temp > 0 ? 'status-row-badge--emerald' : 'status-row-badge--red'}`}>
+                {data.temp > 0 ? 'CONNECTED' : 'OFFLINE'}
+              </span>
+            </div>
+            <div className="status-row">
+              <span className="status-row-label">Voltage Sensor</span>
+              <span className={`status-row-badge ${data.voltage1 > 0 ? 'status-row-badge--emerald' : 'status-row-badge--red'}`}>
+                {data.voltage1 > 0 ? 'CONNECTED' : 'OFFLINE'}
+              </span>
+            </div>
+          </div>
+          <div className="recent-alerts-section">
+            <h4 className="recent-alerts-title">Recent Activity</h4>
+            <div className="recent-alerts-list">
+              {history.slice(0, 8).map((h, i) => (
+                <div key={i} className="recent-alert-item">
+                  <span className="recent-alert-time">[{new Date(h.timestamp).toLocaleTimeString()}]</span>
+                  <span className="recent-alert-data">V:{h.voltage1.toFixed(0)} T:{h.temp.toFixed(1)}°C Oil:{h.oilLevel.toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Location Card */}
+        <div className="panel location-panel">
+          <div className="panel-header">
+            <span className="panel-icon">📍</span>
+            <h3 className="panel-title">Site Location</h3>
+          </div>
+          <p className="location-coords">Addis Ababa: 9.018472, 38.750917</p>
+          <div className="location-map">
             <iframe 
               width="100%" 
               height="100%" 
@@ -183,172 +451,13 @@ export default function Dashboard() {
             ></iframe>
           </div>
         </div>
-
-        <div className="lg:col-span-1 grid grid-rows-3 gap-2">
-          <Gauge 
-            value={data.voltage1} 
-            min={0} max={300} 
-            label="L1 Voltage" 
-            unit="V" 
-            warnLow={200} warnHigh={240} 
-            color="#10b981"
-            size="sm"
-          />
-          <Gauge 
-            value={data.voltage2} 
-            min={0} max={300} 
-            label="L2 Voltage" 
-            unit="V" 
-            warnLow={200} warnHigh={240} 
-            color="#94a3b8"
-            size="sm"
-          />
-          <Gauge 
-            value={data.voltage3} 
-            min={0} max={300} 
-            label="L3 Voltage" 
-            unit="V" 
-            warnLow={200} warnHigh={240} 
-            color="#94a3b8"
-            size="sm"
-          />
-        </div>
-
-        <div className="lg:col-span-1 grid grid-rows-3 gap-2">
-          <Gauge 
-            value={data.current1} 
-            min={0} max={100} 
-            label="L1 Current" 
-            unit="A" 
-            warnHigh={80} 
-            color="#06b6d4"
-            size="sm"
-          />
-          <Gauge 
-            value={data.current2} 
-            min={0} max={100} 
-            label="L2 Current" 
-            unit="A" 
-            warnHigh={80} 
-            color="#94a3b8"
-            size="sm"
-          />
-          <Gauge 
-            value={data.current3} 
-            min={0} max={100} 
-            label="L3 Current" 
-            unit="A" 
-            warnHigh={80} 
-            color="#94a3b8"
-            size="sm"
-          />
-        </div>
-        
-        <Gauge 
-          value={data.temp} 
-          min={0} max={100} 
-          label="top oil Temperature" 
-          unit="°C" 
-          warnHigh={80} 
-          color="#06b6d4" 
-        />
-        <Gauge 
-          value={data.oilLevel} 
-          min={0} max={100} 
-          label="Oil Level" 
-          unit="%" 
-          warnLow={20} 
-          color="#f59e0b" 
-        />
-        <Gauge 
-          value={data.quality} 
-          min={0} max={100} 
-          label="Quality" 
-          unit="%" 
-          warnLow={70} 
-          color="#8b5cf6" 
-        />
       </div>
 
-      {/* Charts & Logs */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <HistoryChart data={history} />
-        </div>
-        
-        {/* Simple Log/Status Panel */}
-        <div className="bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-700 p-6 shadow-xl">
-          <h3 className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-4">System Status</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-sm text-slate-300">Transformer Status</span>
-              <span className="text-xs font-bold text-emerald-400">OPTIMAL</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-sm text-slate-300">Cooling System</span>
-              <span className="text-xs font-bold text-emerald-400">ACTIVE</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-sm text-slate-300">Security Breach</span>
-              <span className="text-xs font-bold text-slate-500">NONE</span>
-            </div>
-
-            {/* AI Prediction Card */}
-            {prediction && prediction.ready && (
-              <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">🤖</span>
-                  <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-widest">System Health Forecast</h4>
-                </div>
-                
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Current Health Score</span>
-                      <span className={`font-mono font-bold ${prediction.health.current < 70 ? 'text-orange-400' : 'text-emerald-400'}`}>
-                        {prediction.health.current}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full ${prediction.health.current < 70 ? 'bg-orange-500' : 'bg-emerald-500'}`} 
-                        style={{ width: `${prediction.health.current}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Predicted (15m)</span>
-                      <span className={`font-mono font-bold ${prediction.health.predicted < 70 ? 'text-red-400' : 'text-cyan-400'}`}>
-                        {prediction.health.predicted}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full ${prediction.health.predicted < 70 ? 'bg-red-500' : 'bg-cyan-500'}`} 
-                        style={{ width: `${prediction.health.predicted}%` }}
-                      />
-                    </div>
-                    <div className="text-[10px] text-right mt-1 text-slate-500">{prediction.health.direction}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="mt-8 pt-4 border-t border-slate-800">
-              <h4 className="text-xs text-slate-500 uppercase mb-2">Recent Alerts</h4>
-              <div className="h-32 overflow-y-auto text-xs font-mono space-y-1 text-slate-400 custom-scrollbar">
-                                {history.slice(0, 10).map((h, i) => (
-                                  <div key={i} className="flex gap-2">
-                                    <span className="text-slate-600">[{new Date(h.timestamp).toLocaleTimeString()}]</span>
-                                    <span>V1:{h.voltage1} C1:{h.current1} T:{h.temp}</span>  
-                                  </div>
-                                ))}              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Footer */}
+      <footer className="dash-footer">
+        <span>© 2026 HYAT Technologies • Advanced Transformer Monitoring</span>
+        <span className="dash-footer-version">v2.0.0</span>
+      </footer>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { useEffect, useState } from 'react';
 
 interface GaugeProps {
   value: number;
@@ -12,70 +12,106 @@ interface GaugeProps {
   warnHigh?: number;
   color?: string;
   size?: 'sm' | 'md';
+  icon?: React.ReactNode;
 }
 
-export default function Gauge({ value, min, max, label, unit, warnLow, warnHigh, color = '#00ff41', size = 'md' }: GaugeProps) {
-  const percentage = Math.min(Math.max((value - min) / (max - min) * 100, 0), 100);
+export default function Gauge({ value, min, max, label, unit, warnLow, warnHigh, color = '#06b6d4', size = 'md', icon }: GaugeProps) {
+  const [animatedValue, setAnimatedValue] = useState(0);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimatedValue(value), 50);
+    return () => clearTimeout(timer);
+  }, [value]);
+
+  const percentage = Math.min(Math.max((animatedValue - min) / (max - min) * 100, 0), 100);
   
   // Determine color based on thresholds
   let finalColor = color;
-  if (warnLow !== undefined && value < warnLow) finalColor = '#ef4444'; // Red
-  if (warnHigh !== undefined && value > warnHigh) finalColor = '#ef4444'; // Red
-  
-  // Warning range logic could be added here (yellow)
-  if (warnLow !== undefined && value >= warnLow && value < (warnLow + 10)) finalColor = '#f59e0b';
-  if (warnHigh !== undefined && value <= warnHigh && value > (warnHigh - 10)) finalColor = '#f59e0b';
+  let status: 'normal' | 'warning' | 'danger' = 'normal';
+  if (warnLow !== undefined && value < warnLow) { finalColor = '#ef4444'; status = 'danger'; }
+  if (warnHigh !== undefined && value > warnHigh) { finalColor = '#ef4444'; status = 'danger'; }
+  if (warnLow !== undefined && value >= warnLow && value < (warnLow + 10)) { finalColor = '#f59e0b'; status = 'warning'; }
+  if (warnHigh !== undefined && value <= warnHigh && value > (warnHigh - 10)) { finalColor = '#f59e0b'; status = 'warning'; }
 
-  const data = [
-    { name: 'Value', value: percentage },
-    { name: 'Rest', value: 100 - percentage },
-  ];
-
-  const heightClass = size === 'sm' ? 'h-20' : 'h-32';
-  const labelClass = size === 'sm' ? 'text-[10px]' : 'text-sm';
-  const valueClass = size === 'sm' ? 'text-lg' : 'text-2xl';
+  const isSm = size === 'sm';
+  const radius = isSm ? 32 : 52;
+  const strokeWidth = isSm ? 5 : 7;
+  const circumference = Math.PI * radius; // Half circle
+  const offset = circumference - (percentage / 100) * circumference;
+  const svgSize = isSm ? 80 : 130;
+  const center = svgSize / 2;
 
   return (
-    <div className={`flex flex-col items-center justify-center ${size === 'sm' ? 'p-2' : 'p-4'} bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden group hover:border-cyan-500/50 transition-all duration-300`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className={`gauge-card gauge-card--${size} ${status !== 'normal' ? 'gauge-card--alert' : ''}`}>
+      {/* Glow background effect */}
+      <div className="gauge-glow" style={{ background: `radial-gradient(circle at 50% 60%, ${finalColor}15, transparent 70%)` }} />
       
-      <h3 className={`text-slate-400 ${labelClass} font-semibold uppercase tracking-wider ${size === 'sm' ? 'mb-0' : 'mb-2'} z-10`}>{label}</h3>
+      <div className="gauge-label-row">
+        {icon && <span className="gauge-icon">{icon}</span>}
+        <h3 className="gauge-label">{label}</h3>
+      </div>
       
-      <div className={`w-full ${heightClass} relative z-10`}>
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="70%"
-              startAngle={180}
-              endAngle={0}
-              innerRadius="70%"
-              outerRadius="90%"
-              paddingAngle={0}
-              dataKey="value"
-              stroke="none"
-            >
-              <Cell key="cell-0" fill={finalColor} />
-              <Cell key="cell-1" fill="#1e293b" />
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className={`absolute inset-0 flex items-center justify-center ${size === 'sm' ? 'pt-4' : 'pt-8'}`}>
-          <div className="text-center">
-            <div className={`font-bold text-white drop-shadow-md ${valueClass}`}>
-              {value}<span className="text-sm text-slate-500 ml-1">{unit}</span>
-            </div>
-          </div>
+      <div className="gauge-svg-wrap" style={{ width: svgSize, height: svgSize * 0.65 }}>
+        <svg 
+          width={svgSize} 
+          height={svgSize * 0.65} 
+          viewBox={`0 0 ${svgSize} ${svgSize * 0.65}`}
+          className="gauge-svg"
+        >
+          <defs>
+            <linearGradient id={`grad-${label.replace(/\s+/g, '')}`} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={finalColor} stopOpacity="0.4" />
+              <stop offset="100%" stopColor={finalColor} stopOpacity="1" />
+            </linearGradient>
+            <filter id={`glow-${label.replace(/\s+/g, '')}`}>
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          {/* Background track */}
+          <path
+            d={`M ${center - radius} ${center + (isSm ? 8 : 12)} A ${radius} ${radius} 0 0 1 ${center + radius} ${center + (isSm ? 8 : 12)}`}
+            fill="none"
+            stroke="#1e293b"
+            strokeWidth={strokeWidth + 2}
+            strokeLinecap="round"
+          />
+          {/* Value arc */}
+          <path
+            d={`M ${center - radius} ${center + (isSm ? 8 : 12)} A ${radius} ${radius} 0 0 1 ${center + radius} ${center + (isSm ? 8 : 12)}`}
+            fill="none"
+            stroke={`url(#grad-${label.replace(/\s+/g, '')})`}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            filter={`url(#glow-${label.replace(/\s+/g, '')})`}
+            style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          />
+        </svg>
+        <div className="gauge-value-overlay" style={{ bottom: isSm ? '0px' : '2px' }}>
+          <span className={`gauge-value ${isSm ? 'gauge-value--sm' : ''}`} style={{ color: finalColor }}>
+            {value.toFixed(value % 1 === 0 ? 0 : 1)}
+          </span>
+          <span className={`gauge-unit ${isSm ? 'gauge-unit--sm' : ''}`}>{unit}</span>
         </div>
       </div>
       
-      {size !== 'sm' && (
-        <div className="w-full flex justify-between text-xs text-slate-500 px-4 mt-[-10px] z-10">
+      {!isSm && (
+        <div className="gauge-range">
           <span>{min}</span>
           <span>{max}</span>
         </div>
       )}
+
+      {/* Status dot */}
+      <div className="gauge-status-dot" style={{ 
+        backgroundColor: status === 'danger' ? '#ef4444' : status === 'warning' ? '#f59e0b' : '#10b981',
+        boxShadow: `0 0 6px ${status === 'danger' ? '#ef444480' : status === 'warning' ? '#f59e0b80' : '#10b98180'}`
+      }} />
     </div>
   );
 }

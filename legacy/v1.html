@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Titan Power Analytics v7.0</title>
+    <style>
+        :root {
+            --bg: #040508;
+            --card: #0f131a;
+            --accent: #00e5ff;
+            --danger: #ff0055;
+            --success: #00ffaa;
+            --dim-text: #607d8b;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #eceff1;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 30px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .scada-container {
+            width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .monitor-block {
+            background: var(--card);
+            border: 1px solid #263238;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+        }
+
+        .block-title {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: var(--dim-text);
+            text-transform: uppercase;
+            border-bottom: 1px solid #263238;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* The 3-Phase Layout */
+        .phase-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .phase-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .reading {
+            font-family: 'Consolas', monospace;
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+        }
+
+        .label-sm { font-size: 10px; color: var(--dim-text); margin-top: -5px; }
+
+        /* Harmonic/Waveform Bars */
+        .wave-container {
+            display: flex;
+            align-items: flex-end;
+            height: 40px;
+            gap: 3px;
+            margin-top: 15px;
+            padding: 5px;
+            background: #080a0d;
+            border-radius: 4px;
+        }
+
+        .wave-bar {
+            flex: 1;
+            background: var(--accent);
+            opacity: 0.6;
+            border-radius: 1px;
+        }
+
+        .status-pill {
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .deviation { font-size: 12px; color: var(--success); }
+    </style>
+</head>
+<body>
+
+<div class="scada-container">
+    
+    <div class="monitor-block">
+        <div class="block-title">
+            Voltage Analytics (Line-to-Neutral)
+            <span class="status-pill">NOMINAL STABILITY</span>
+        </div>
+        
+        <div class="phase-row">
+            <div class="phase-item">
+                <div class="label-sm">PHASE A</div>
+                <div class="reading">231.2</div>
+                <div class="deviation">Δ +0.5%</div>
+            </div>
+            <div class="phase-item">
+                <div class="label-sm">PHASE B</div>
+                <div class="reading">229.4</div>
+                <div class="deviation">Δ -0.2%</div>
+            </div>
+            <div class="phase-item">
+                <div class="label-sm">PHASE C</div>
+                <div class="reading">230.1</div>
+                <div class="deviation" style="color:var(--dim-text)">Δ 0.0%</div>
+            </div>
+        </div>
+
+        <div class="label-sm">VOLTAGE HARMONIC SPECTRUM (THD-V: 0.8%)</div>
+        <div class="wave-container">
+            <div class="wave-bar" style="height: 100%"></div>
+            <div class="wave-bar" style="height: 15%"></div>
+            <div class="wave-bar" style="height: 25%"></div>
+            <div class="wave-bar" style="height: 10%"></div>
+            <div class="wave-bar" style="height: 40%"></div>
+            <div class="wave-bar" style="height: 5%"></div>
+        </div>
+    </div>
+
+    <div class="monitor-block" style="border-right: 4px solid var(--danger);">
+        <div class="block-title">
+            Current Analytics & Demand
+            <span class="status-pill" style="border-color:var(--danger); color:var(--danger);">OVERLOAD RISK</span>
+        </div>
+
+        <div class="phase-row">
+            <div class="phase-item">
+                <div class="label-sm">PHASE A</div>
+                <div class="reading">145.0</div>
+                <div class="label-sm">LOAD: 72%</div>
+            </div>
+            <div class="phase-item">
+                <div class="label-sm">PHASE B</div>
+                <div class="reading">92.4</div>
+                <div class="label-sm">LOAD: 46%</div>
+            </div>
+            <div class="phase-item" style="color:var(--danger)">
+                <div class="label-sm" style="color:var(--danger)">PHASE C</div>
+                <div class="reading" style="color:var(--danger)">252.8</div>
+                <div class="label-sm" style="color:var(--danger)">LOAD: 126%</div>
+            </div>
+        </div>
+
+        <div class="label-sm">CURRENT PEAK MEMORY (24H)</div>
+        <div style="background:#080a0d; height:20px; border-radius:10px; margin-top:10px; position:relative; overflow:hidden;">
+            <div style="width: 85%; background: linear-gradient(90deg, var(--accent), var(--danger)); height:100%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:9px; margin-top:5px;">
+            <span>MIN: 42A</span>
+            <span>AVG: 163A</span>
+            <span>PEAK: 252.8A</span>
+        </div>
+    </div>
+
+    <div class="monitor-block" style="grid-column: span 2;">
+        <div class="block-title">Neutral Health & System Balance</div>
+        <div style="display:flex; justify-content: center; align-items: center; padding: 10px 0;">
+            <div style="text-align:center">
+                <div class="label-sm">NEUTRAL CURRENT</div>
+                <div class="reading" style="font-size:3.2rem; color:#ffab00">46.5<span style="font-size:16px; margin-left: 5px;">A</span></div>
+                <div class="label-sm" style="margin-top: 5px; color: #ffab00;">UNBALANCE DETECTED</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
