@@ -1,6 +1,0 @@
-[build]
-builder = "nixpacks"
-buildCommand = "pip install -r ml_server/requirements.txt"
-
-[deploy]
-startCommand = "python ml_server/predict_server.py"
